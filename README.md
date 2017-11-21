@@ -9,10 +9,10 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 <br/>
 调用简单示例<br/>
 1,检测<br/>
-  ssd_model = ssd300.SSD300(tf_sess=sess, isTraining=False)<br/>
-  f_class,f_location = ssd_model.run(input_img,None)<br/>
+&nbsp;&nbsp;ssd_model = ssd300.SSD300(tf_sess=sess, isTraining=False)<br/>
+&nbsp;&nbsp;f_class,f_location = ssd_model.run(input_img,None)<br/>
 2,训练<br/>
-  ssd_model = ssd300.SSD300(tf_sess=sess, isTraining=True)<br/>
-  loss_all,loss_location,loss_class = ssd_model.run(train_data, actual_data)<br/>
+&nbsp;&nbsp;ssd_model = ssd300.SSD300(tf_sess=sess, isTraining=True)<br/>
+&nbsp;&nbsp;loss_all,loss_location,loss_class = ssd_model.run(train_data, actual_data)<br/>
 <br/>
 【整体架码源码已完成，但是卷积参数还没有跟原论文一致】<br/>
