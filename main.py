@@ -74,7 +74,7 @@ def training():
                 #print('loss_location:'+str(loss_location))
                 #print('loss_class:'+str(loss_location))
                 
-                # 每训练50次保存ckpt
+                # 每训练100次保存ckpt
                 if running_count%100 == 0:
                     saver.save(sess, './session_params/session.ckpt')
                     gc.collect()
