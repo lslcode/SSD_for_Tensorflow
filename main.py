@@ -32,7 +32,6 @@ def testing():
                             print('f_class:'+str(a[4]))
                             print('f_location:'+str(l))
                             print('----------------------')
-                        
         else:
             print('No Data Exists!')
             
@@ -58,7 +57,7 @@ def training():
         print('\nStart Training')
         min_loss_location = 100000.
         min_loss_class = 100000.
-        while((min_loss_location+min_loss_class) > 3 and running_count < 100000 ):
+        while((min_loss_location+min_loss_class) > 0.05 and running_count < 100000 ):
             running_count += 1
             
             train_data, actual_data = get_traindata_voc2007(batch_size)
@@ -72,9 +71,8 @@ def training():
                 if min_loss_class>c:
                     min_loss_class = c
                 print('Running:【' + str(running_count) + '】 | Loss All:【' + str(min_loss_location+min_loss_class) +'/'+ str(loss_all) + '】 | Location:【' + str(min_loss_location) +'/'+ str(np.sum(loss_location)) + '】 | Class:【' + str(min_loss_class) +'/'+ str(np.sum(loss_class)) + '】')
-                
-                del train_data
-                del actual_data
+                #print('loss_location:'+str(loss_location))
+                #print('loss_class:'+str(loss_location))
                 
                 # 每训练50次保存ckpt
                 if running_count%100 == 0:
@@ -84,7 +82,9 @@ def training():
                 print('No Data Exists!')
                 break
             
+        saver.save(sess, './session_params/session.ckpt')
         sess.close()
+        gc.collect()
             
     print('End Training')
     
@@ -134,12 +134,3 @@ if __name__ == '__main__':
     print('\nEnd Running')
 
 
-
-
-
-
-
-
-
-       
-        
