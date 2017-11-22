@@ -143,114 +143,120 @@ class SSD300:
     
         # vvg16卷积层 1
         self.conv_1_1 = tf.nn.conv2d(self.input, self.conv_weight_1_1, self.conv_strides_1, padding='SAME', name='conv_1_1')
-        self.conv_1_1 = self.batch_normalization(self.conv_1_1)
         self.conv_1_1 = tf.nn.relu(tf.add(self.conv_1_1, self.conv_bias_1_1), name='relu_1_1')
+        self.conv_1_1 = self.batch_normalization(self.conv_1_1)
         self.conv_1_2 = tf.nn.conv2d(self.conv_1_1, self.conv_weight_1_2, self.conv_strides_1, padding='SAME', name='conv_1_2')
-        self.conv_1_2 = self.batch_normalization(self.conv_1_2)
         self.conv_1_2 = tf.nn.relu(tf.add(self.conv_1_2, self.conv_bias_1_2), name='relu_1_2')
+        self.conv_1_2 = self.batch_normalization(self.conv_1_2)
         self.conv_1_2 = tf.nn.max_pool(self.conv_1_2, self.pool_size, self.pool_strides, padding='SAME',   name='pool_1_2')
         # vvg16卷积层 2
         self.conv_2_1 = tf.nn.conv2d(self.conv_1_2, self.conv_weight_2_1, self.conv_strides_1, padding='SAME', name='conv_2_1')
-        self.conv_2_1 = self.batch_normalization(self.conv_2_1)
         self.conv_2_1 = tf.nn.relu(tf.add(self.conv_2_1, self.conv_bias_2_1), name='relu_2_1')
+        self.conv_2_1 = self.batch_normalization(self.conv_2_1)
         self.conv_2_2 = tf.nn.conv2d(self.conv_2_1, self.conv_weight_2_2, self.conv_strides_1, padding='SAME', name='conv_2_2')
-        self.conv_2_2 = self.batch_normalization(self.conv_2_2)
         self.conv_2_2 = tf.nn.relu(tf.add(self.conv_2_2, self.conv_bias_2_2), name='relu_2_2')
+        self.conv_2_2 = self.batch_normalization(self.conv_2_2)
         self.conv_2_2 = tf.nn.max_pool(self.conv_2_2, self.pool_size, self.pool_strides, padding='SAME',   name='pool_2_2')
         # vvg16卷积层 3
         self.conv_3_1 = tf.nn.conv2d(self.conv_2_2, self.conv_weight_3_1, self.conv_strides_1, padding='SAME', name='conv_3_1')
-        self.conv_3_1 = self.batch_normalization(self.conv_3_1)
         self.conv_3_1 = tf.nn.relu(tf.add(self.conv_3_1, self.conv_bias_3_1), name='relu_3_1')
+        self.conv_3_1 = self.batch_normalization(self.conv_3_1)
         self.conv_3_2 = tf.nn.conv2d(self.conv_3_1, self.conv_weight_3_2, self.conv_strides_1, padding='SAME', name='conv_3_2')
-        self.conv_3_2 = self.batch_normalization(self.conv_3_2)
         self.conv_3_2 = tf.nn.relu(tf.add(self.conv_3_2, self.conv_bias_3_2), name='relu_3_2')
+        self.conv_3_2 = self.batch_normalization(self.conv_3_2)
         self.conv_3_3 = tf.nn.conv2d(self.conv_3_2, self.conv_weight_3_3, self.conv_strides_1, padding='SAME', name='conv_3_3')
-        self.conv_3_3 = self.batch_normalization(self.conv_3_3)
         self.conv_3_3 = tf.nn.relu(tf.add(self.conv_3_3, self.conv_bias_3_3), name='relu_3_3')
+        self.conv_3_3 = self.batch_normalization(self.conv_3_3)
         self.conv_3_3 = tf.nn.max_pool(self.conv_3_3, self.pool_size, self.pool_strides, padding='SAME',   name='pool_3_3')
         # vvg16卷积层 4
         self.conv_4_1 = tf.nn.conv2d(self.conv_3_3, self.conv_weight_4_1, self.conv_strides_1, padding='SAME', name='conv_4_1')
-        self.conv_4_1 = self.batch_normalization(self.conv_4_1)
         self.conv_4_1 = tf.nn.relu(tf.add(self.conv_4_1, self.conv_bias_4_1), name='relu_4_1')
+        self.conv_4_1 = self.batch_normalization(self.conv_4_1)
         self.conv_4_2 = tf.nn.conv2d(self.conv_4_1, self.conv_weight_4_2, self.conv_strides_1, padding='SAME', name='conv_4_2')
-        self.conv_4_2 = self.batch_normalization(self.conv_4_2)
         self.conv_4_2 = tf.nn.relu(tf.add(self.conv_4_2, self.conv_bias_4_2), name='relu_4_2')
+        self.conv_4_2 = self.batch_normalization(self.conv_4_2)
         self.conv_4_3 = tf.nn.conv2d(self.conv_4_2, self.conv_weight_4_3, self.conv_strides_1, padding='SAME', name='conv_4_3')
-        self.conv_4_3 = self.batch_normalization(self.conv_4_3)
         self.conv_4_3 = tf.nn.relu(tf.add(self.conv_4_3, self.conv_bias_4_3), name='relu_4_3')
+        self.conv_4_3 = self.batch_normalization(self.conv_4_3)
         self.conv_4_3 = tf.nn.max_pool(self.conv_4_3, self.pool_size, self.pool_strides, padding='SAME',   name='pool_4_3')
         # vvg16卷积层 5
         self.conv_5_1 = tf.nn.conv2d(self.conv_4_3, self.conv_weight_5_1, self.conv_strides_1, padding='SAME', name='conv_5_1')
-        self.conv_5_1 = self.batch_normalization(self.conv_5_1)
         self.conv_5_1 = tf.nn.relu(tf.add(self.conv_5_1, self.conv_bias_5_1), name='relu_5_1')
+        self.conv_5_1 = self.batch_normalization(self.conv_5_1)
         self.conv_5_2 = tf.nn.conv2d(self.conv_5_1, self.conv_weight_5_2, self.conv_strides_1, padding='SAME', name='conv_5_2')
-        self.conv_5_2 = self.batch_normalization(self.conv_5_2)
         self.conv_5_2 = tf.nn.relu(tf.add(self.conv_5_2, self.conv_bias_5_2), name='relu_5_2')
+        self.conv_5_2 = self.batch_normalization(self.conv_5_2)
         self.conv_5_3 = tf.nn.conv2d(self.conv_5_2, self.conv_weight_5_3, self.conv_strides_1, padding='SAME', name='conv_5_3')
-        self.conv_5_3 = self.batch_normalization(self.conv_5_3)
         self.conv_5_3 = tf.nn.relu(tf.add(self.conv_5_3, self.conv_bias_5_3), name='relu_5_3')
+        self.conv_5_3 = self.batch_normalization(self.conv_5_3)
         self.conv_5_3 = tf.nn.max_pool(self.conv_5_3, self.pool_size, self.pool_strides, padding='SAME',   name='pool_5_3')
 
         # ssd卷积层 6
         self.conv_6_1 = tf.nn.conv2d(self.conv_5_3, self.conv_weight_6_1, self.conv_strides_1, padding='SAME', name='conv_6_1')
-        self.conv_6_1 = self.batch_normalization(self.conv_6_1)
         self.conv_6_1 = tf.nn.relu(tf.add(self.conv_6_1, self.conv_bias_6_1), name='relu_6_1')
+        self.conv_6_1 = self.batch_normalization(self.conv_6_1)
 
         # ssd卷积层 7
         self.conv_7_1 = tf.nn.conv2d(self.conv_6_1, self.conv_weight_7_1, self.conv_strides_1, padding='SAME', name='conv_7_1')
-        self.conv_7_1 = self.batch_normalization(self.conv_7_1)
         self.conv_7_1 = tf.nn.relu(tf.add(self.conv_7_1, self.conv_bias_7_1), name='relu_7_1')
+        self.conv_7_1 = self.batch_normalization(self.conv_7_1)
 
         # ssd卷积层 8
         self.conv_8_1 = tf.nn.conv2d(self.conv_7_1, self.conv_weight_8_1, self.conv_strides_1, padding='SAME', name='conv_8_1')
-        self.conv_8_1 = self.batch_normalization(self.conv_8_1)
         self.conv_8_1 = tf.nn.relu(tf.add(self.conv_8_1, self.conv_bias_8_1), name='relu_8_1')
+        self.conv_8_1 = self.batch_normalization(self.conv_8_1)
         self.conv_8_2 = tf.nn.conv2d(self.conv_8_1, self.conv_weight_8_2, self.conv_strides_2, padding='SAME', name='conv_8_2')
-        self.conv_8_2 = self.batch_normalization(self.conv_8_2)
         self.conv_8_2 = tf.nn.relu(tf.add(self.conv_8_2, self.conv_bias_8_2), name='relu_8_2')
+        self.conv_8_2 = self.batch_normalization(self.conv_8_2)
         
         # ssd卷积层 9
         self.conv_9_1 = tf.nn.conv2d(self.conv_8_2, self.conv_weight_9_1, self.conv_strides_1, padding='SAME', name='conv_9_1')
-        self.conv_9_1 = self.batch_normalization(self.conv_9_1)
         self.conv_9_1 = tf.nn.relu(tf.add(self.conv_9_1, self.conv_bias_9_1), name='relu_9_1')
+        self.conv_9_1 = self.batch_normalization(self.conv_9_1)
         self.conv_9_2 = tf.nn.conv2d(self.conv_9_1, self.conv_weight_9_2, self.conv_strides_2, padding='SAME', name='conv_9_2')
-        self.conv_9_2 = self.batch_normalization(self.conv_9_2)
         self.conv_9_2 = tf.nn.relu(tf.add(self.conv_9_2, self.conv_bias_9_2), name='relu_9_2')
+        self.conv_9_2 = self.batch_normalization(self.conv_9_2)
         
         # ssd卷积层 10
         self.conv_10_1 = tf.nn.conv2d(self.conv_9_2, self.conv_weight_10_1, self.conv_strides_1, padding='SAME', name='conv_10_1')
-        self.conv_10_1 = self.batch_normalization(self.conv_10_1)
         self.conv_10_1 = tf.nn.relu(tf.add(self.conv_10_1, self.conv_bias_10_1), name='relu_10_1')
+        self.conv_10_1 = self.batch_normalization(self.conv_10_1)
         self.conv_10_2 = tf.nn.conv2d(self.conv_10_1, self.conv_weight_10_2, self.conv_strides_2, padding='SAME', name='conv_10_2')
-        self.conv_10_2 = self.batch_normalization(self.conv_10_2)
         self.conv_10_2 = tf.nn.relu(tf.add(self.conv_10_2, self.conv_bias_10_2), name='relu_10_2')
+        self.conv_10_2 = self.batch_normalization(self.conv_10_2)
         
         # ssd卷积层 11
         self.conv_11_1 = tf.nn.conv2d(self.conv_10_2, self.conv_weight_11_1, self.conv_strides_1, padding='SAME', name='conv_11_1')
-        self.conv_11_1 = self.batch_normalization(self.conv_11_1)
         self.conv_11_1 = tf.nn.relu(tf.add(self.conv_11_1, self.conv_bias_11_1), name='relu_11_1')
+        self.conv_11_1 = self.batch_normalization(self.conv_11_1)
         self.conv_11_2 = tf.nn.conv2d(self.conv_11_1, self.conv_weight_11_2, self.conv_strides_3, padding='SAME', name='conv_11_2')
-        self.conv_11_2 = self.batch_normalization(self.conv_11_2)
         self.conv_11_2 = tf.nn.relu(tf.add(self.conv_11_2, self.conv_bias_11_2), name='relu_11_2')
+        self.conv_11_2 = self.batch_normalization(self.conv_11_2)
 
         # 第 1 层 特征层，来源于conv_5_3
         self.features_1 = tf.nn.conv2d(self.conv_5_3, self.features_weight_1, self.conv_strides_1, padding='SAME', name='conv_features_1')
         self.features_1 = tf.nn.relu(tf.add(self.features_1, self.features_bias_1),name='relu_features_1')
+        self.features_1 = self.batch_normalization(self.features_1)
         # 第 2 层 特征层，来源于conv_7_1
         self.features_2 = tf.nn.conv2d(self.conv_7_1, self.features_weight_2, self.conv_strides_1, padding='SAME', name='conv_features_2')
         self.features_2 = tf.nn.relu(tf.add(self.features_2, self.features_bias_2),name='relu_features_2')
+        self.features_2 = self.batch_normalization(self.features_2)
         # 第 3 层 特征层，来源于conv_8_2
         self.features_3 = tf.nn.conv2d(self.conv_8_2, self.features_weight_3, self.conv_strides_1, padding='SAME', name='conv_features_3')
         self.features_3 = tf.nn.relu(tf.add(self.features_3, self.features_bias_3),name='relu_features_3')
+        self.features_3 = self.batch_normalization(self.features_3)
         # 第 4 层 特征层，来源于conv_9_2
         self.features_4 = tf.nn.conv2d(self.conv_9_2, self.features_weight_4, self.conv_strides_1, padding='SAME', name='conv_features_4')
         self.features_4 = tf.nn.relu(tf.add(self.features_4, self.features_bias_4),name='relu_features_4')
+        self.features_4 = self.batch_normalization(self.features_4)
         # 第 5 层 特征层，来源于conv_10_2
         self.features_5 = tf.nn.conv2d(self.conv_10_2,self.features_weight_5, self.conv_strides_1, padding='SAME', name='conv_features_5')
         self.features_5 = tf.nn.relu(tf.add(self.features_5, self.features_bias_5),name='relu_features_5')
+        self.features_5 = self.batch_normalization(self.features_5)
         # 第 6 层 特征层，来源于conv_11_2
         self.features_6 = tf.nn.conv2d(self.conv_11_2,self.features_weight_6, self.conv_strides_1, padding='SAME', name='conv_features_6')
         self.features_6 = tf.nn.relu(tf.add(self.features_6, self.features_bias_6),name='relu_features_6')
+        self.features_6 = self.batch_normalization(self.features_6)
 
         # 特征层集合
         self.feature_maps = [self.features_1, self.features_2, self.features_3, self.features_4, self.features_5, self.features_6]
@@ -288,7 +294,7 @@ class SSD300:
         self.loss = [self.loss_all,self.loss_location,self.loss_class]
         # loss优化函数
         self.optimizer = tf.train.AdamOptimizer(0.001)
-        #self.optimizer = tf.train.NadamOptimizer(0.001)
+        #self.optimizer = tf.train.GradientDescentOptimizer(0.001)
         self.train = self.optimizer.minimize(self.loss_all)
          
     # 图像检测与训练
@@ -306,6 +312,14 @@ class SSD300:
             self.input_actual_data = actual_data
             gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(f_class)
         
+            self.sess.run(self.train, feed_dict={
+                self.input : input_images,
+                self.groundtruth_class : gt_class,
+                self.groundtruth_location : gt_location,
+                self.groundtruth_positives : gt_positives,
+                self.groundtruth_negatives : gt_negatives
+            })
+
             loss_all,loss_location,loss_class= self.sess.run(self.loss, feed_dict={
                 self.input : input_images,
                 self.groundtruth_class : gt_class,
@@ -314,14 +328,6 @@ class SSD300:
                 self.groundtruth_negatives : gt_negatives
             })
 
-            self.sess.run(self.train, feed_dict={
-                self.input : input_images,
-                self.groundtruth_class : gt_class,
-                self.groundtruth_location : gt_location,
-                self.groundtruth_positives : gt_positives,
-                self.groundtruth_negatives : gt_negatives
-            })
-         
             # 释放资源
             self.feature_maps = None
             self.tmp_all_feature = None
@@ -441,8 +447,8 @@ class SSD300:
         s = rect1_[2] * rect1_[3] + rect2_[2] * rect2_[3]
         # rect1 and rect2 => A∧B
         intersect = 0
-        top_y = max(rect1_[1], rect2_[1])
         top_x = max(rect1_[0], rect2_[0])
+        top_y = max(rect1_[1], rect2_[1])
         bottom_x = min(rect1_[0] + rect1_[2], rect2_[0] + rect2_[2])
         bottom_y = min(rect1_[1] + rect1_[3], rect2_[1] + rect2_[3])
         if bottom_y > top_y and bottom_x > top_x:
