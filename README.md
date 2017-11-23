@@ -6,10 +6,11 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 我看了几套，然后就有一种强烈的冲动再码一套尽可能简单直接的源码，一方面可以更好地理解SSD的内部原理，另一方面也可以给各位初学者有个简单入门的源码参考。<br/>
 <br/>
 代码结构：<br/>
-<b>ssd300.py</b> - ssd的核心代码封装，实现300 * 300的图片格式。<br/>
-<b>main.py</b> - ssd300的使用用例，包括训练、检测的调用示例。训练时使用voc2012数据集，数据可以从<a href='http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar' target='_blank'>这里</a>下载，解压到\train_datasets\voc2012目录下
+<b style='color:#ff5500'>ssd300.py</b> - ssd的核心代码封装，实现300 * 300的图片格式。<br/><br/>
+<b style='color:#ff5500'>main.py</b> - ssd300的使用用例，包括训练、检测的调用示例。训练时使用voc2012数据集，数据可以从<a href='http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar' target='_blank'>这里</a>下载，解压到\train_datasets\voc2012目录下
 <br/>
-the end
+<br/>
+就这2个文件了。
 <br/>
 <br/>
 与原论文不一致的地方：<br/>
