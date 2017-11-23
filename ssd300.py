@@ -50,6 +50,8 @@ class SSD300:
         self.conv_bn_epsilon = 0.0001
         # Jaccard相似度判断阀值
         self.jaccard_value = 0.5
+        # 冗余小数，用于解决除数为0的异常情况
+        self.extra_decimal = 1e-5
 
         # 初始化Tensorflow Graph
         self.generate_graph()
@@ -277,19 +279,23 @@ class SSD300:
         # 这里正式拆分为定位和类别2类数据
         self.feature_class = self.tmp_all_feature[:,:,:self.classes_size]
         self.feature_location = self.tmp_all_feature[:,:,self.classes_size:]
-        self.pre_all_default_boxs_len = self.feature_class.get_shape().as_list()[1]
+
+        # 生成所有default boxs
+        self.all_default_boxs = self.generate_all_default_boxs()
+        self.all_default_boxs_len = len(self.all_default_boxs)
+
         # 用于Testing返回值
-        self.testing_set = [self.feature_class, self.feature_location]
+        self.pred_set = [self.feature_class, self.feature_location]
 
         # 输入真实数据
         self.input_actual_data = []
-        self.groundtruth_class = tf.placeholder(shape=[None,self.pre_all_default_boxs_len], dtype=tf.int32,name='groundtruth_class')
-        self.groundtruth_location = tf.placeholder(shape=[None,self.pre_all_default_boxs_len,4], dtype=tf.float32,name='groundtruth_location')
-        self.groundtruth_positives = tf.placeholder(shape=[None,self.pre_all_default_boxs_len], dtype=tf.float32,name='groundtruth_positives')
-        self.groundtruth_negatives = tf.placeholder(shape=[None,self.pre_all_default_boxs_len], dtype=tf.float32,name='groundtruth_negatives')
+        self.groundtruth_class = tf.placeholder(shape=[None,self.all_default_boxs_len], dtype=tf.int32,name='groundtruth_class')
+        self.groundtruth_location = tf.placeholder(shape=[None,self.all_default_boxs_len,4], dtype=tf.float32,name='groundtruth_location')
+        self.groundtruth_positives = tf.placeholder(shape=[None,self.all_default_boxs_len], dtype=tf.float32,name='groundtruth_positives')
+        self.groundtruth_negatives = tf.placeholder(shape=[None,self.all_default_boxs_len], dtype=tf.float32,name='groundtruth_negatives')
 
-        self.loss_location = tf.reduce_sum(tf.reduce_sum(self.smooth_L1(tf.subtract(self.groundtruth_location , self.feature_location)), reduction_indices=2) * self.groundtruth_positives, reduction_indices=1) / (1e-5 + tf.reduce_sum(self.groundtruth_positives, reduction_indices = 1))
-        self.loss_class = tf.reduce_sum((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.feature_class, labels=self.groundtruth_class) * tf.add(self.groundtruth_positives , self.groundtruth_negatives)), reduction_indices=1) / (1e-5 + tf.reduce_sum(tf.add(self.groundtruth_positives , self.groundtruth_negatives), reduction_indices = 1))
+        self.loss_location = tf.reduce_sum(tf.reduce_sum(self.smooth_L1(tf.subtract(self.groundtruth_location , self.feature_location)), reduction_indices=2) * self.groundtruth_positives, reduction_indices=1) / (self.extra_decimal + tf.reduce_sum(self.groundtruth_positives, reduction_indices = 1))
+        self.loss_class = tf.reduce_sum((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.feature_class, labels=self.groundtruth_class) * tf.add(self.groundtruth_positives , self.groundtruth_negatives)), reduction_indices=1) / (self.extra_decimal + tf.reduce_sum(tf.add(self.groundtruth_positives , self.groundtruth_negatives), reduction_indices = 1))
         self.loss_all = tf.reduce_sum(tf.add(self.loss_class , self.loss_location))
         self.loss = [self.loss_all,self.loss_location,self.loss_class]
         # loss优化函数
@@ -308,7 +314,7 @@ class SSD300:
             if len(input_images) != len(actual_data):
                 raise Exception('input_images 与 actual_data参数长度不对应!')
         
-            f_class, f_location = self.sess.run(self.testing_set, feed_dict={self.input : input_images})
+            f_class, f_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
             self.input_actual_data = actual_data
             gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(f_class)
         
@@ -336,14 +342,34 @@ class SSD300:
 
         # 检测部分
         else :
-            # 过滤检测多余的结果(未完成)
-            def testing_filter(f_class,f_location):
-                detected_class = f_class
-                detected_location = f_location
-                return detected_class,detected_location
+            # 预测结果
+            pred_class,pred_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
 
-            f_class,f_location = self.sess.run(self.testing_set, feed_dict={self.input : input_images})
-            return testing_filter(f_class, f_location)
+            # 过滤冗余的预测结果
+            top_size = self.all_default_boxs_len / 20
+            possibilities = [np.amax(np.exp(c)) / (np.sum(np.exp(c)) + self.extra_decimal) for c in pred_class[0]]
+            indicies = np.argpartition(possibilities,-top_size)[-top_size:]
+            indicies = indicies[0.5 < possibilities[indicies]]
+                
+            pred_class = pred_class[0][indicies]
+            pred_location = pred_location[0][indicies]
+
+            result_location = []
+            result_class = []
+            for p_c, p_l in zip(pred_class, pred_location):
+                p_class = np.argmax(p_c)
+                if p_class == self.background_classes_val:
+                    continue
+                isFilter = False
+                for r_class, r_loc in zip(result_class, result_location):
+                    if r_class == p_class and self.jaccard(r_loc, p_l) > self.jaccard_value :
+                        isFilter = True
+                        break
+                if isFilter == False:
+                    result_location.append(p_l)
+                    result_class.append(p_class)        
+
+            return result_location, result_class
 
     # Batch Normalization算法
     #批量归一标准化操作，预防梯度弥散、消失与爆炸，同时替换dropout预防过拟合的操作
@@ -362,7 +388,19 @@ class SSD300:
 
         bn_mean, bn_variance = tf.cond(tf.constant(self.isTraining), mean_var_with_update,lambda: (bn_ema.average(bn_batch_mean), bn_ema.average(bn_batch_var)))
         return tf.nn.batch_normalization(input, bn_mean, bn_variance, bn_offset, bn_scale, self.conv_bn_epsilon)
-
+    '''
+    def batch_normalization(self, input):
+        bn_input_shape = input.get_shape()
+        bn_input_params = bn_input_shape.as_list()[-1]
+        bn_offset = tf.Variable(tf.zeros([bn_input_params]))
+        bn_scale = tf.Variable(tf.ones([bn_input_params]))
+        bn_batch_mean, bn_batch_var = tf.nn.moments(input, list(range(len(bn_input_shape) - 1)))
+        print(bn_batch_mean)
+        print(bn_batch_var)
+        bn_ema = tf.train.ExponentialMovingAverage(decay=self.conv_bn_decay)
+        bn_mean, bn_variance = tf.cond(tf.constant(self.isTraining), lambda:(tf.identity(bn_batch_mean),tf.identity(bn_batch_var)), lambda:(bn_ema.average(bn_batch_mean),bn_ema.average(bn_batch_var)))
+        return tf.nn.batch_normalization(input, bn_mean, bn_variance, bn_offset, bn_scale, self.conv_bn_epsilon)
+    '''
     # smooth_L1 算法
     def smooth_L1(self, x):
         sml1 = tf.multiply(0.5, tf.pow(x, 2.0))
@@ -371,7 +409,7 @@ class SSD300:
         return tf.where(cond, sml1, sml2) 
 
     # 初始化、整理训练数据
-    def get_pre_all_default_boxs(self):
+    def generate_all_default_boxs(self):
         # 全部按照比例计算并生成一张图像产生的每个default box的坐标以及长宽
         # 用于后续的jaccard匹配
         all_default_boxes = []
@@ -396,19 +434,18 @@ class SSD300:
     # 整理生成groundtruth数据
     def generate_groundtruth_data(self,f_class):
         input_actual_data_len = len(self.input_actual_data)
-        # 获取每张图像对应的所有default boxs
-        pre_all_default_boxs = self.get_pre_all_default_boxs()
+        
         # 生成空数组，用于保存groundtruth
-        gt_class = np.zeros((input_actual_data_len, self.pre_all_default_boxs_len))
-        gt_location = np.zeros((input_actual_data_len, self.pre_all_default_boxs_len, 4))
-        gt_positives = np.zeros((input_actual_data_len, self.pre_all_default_boxs_len))
-        gt_negatives = np.zeros((input_actual_data_len, self.pre_all_default_boxs_len))
+        gt_class = np.zeros((input_actual_data_len, self.all_default_boxs_len))
+        gt_location = np.zeros((input_actual_data_len, self.all_default_boxs_len, 4))
+        gt_positives = np.zeros((input_actual_data_len, self.all_default_boxs_len))
+        gt_negatives = np.zeros((input_actual_data_len, self.all_default_boxs_len))
 
         indicies = []
         def extract_highest_indicies(pre_class, max_length):
             loss_confs = []
             for c in pre_class:
-                pred = np.exp(c) / (np.sum(np.exp(c)) + 0.00001)
+                pred = np.exp(c) / (np.sum(np.exp(c)) + self.extra_decimal)
                 loss_confs.append(np.amax(pred))
             size = min(len(loss_confs), max_length)
             indicies = np.argpartition(loss_confs, -size)[-size:] 
@@ -419,8 +456,8 @@ class SSD300:
             for pre_actual in self.input_actual_data[img_index]:
                 gt_class_val = np.amax(pre_actual[4:])
                 gt_box_val = pre_actual[:4]
-                for boxe_index in range(self.pre_all_default_boxs_len):
-                    jacc = self.jaccard(gt_box_val, pre_all_default_boxs[boxe_index])
+                for boxe_index in range(self.all_default_boxs_len):
+                    jacc = self.jaccard(gt_box_val, self.all_default_boxs[boxe_index])
                     if jacc > self.jaccard_value or jacc == self.jaccard_value:
                         gt_class[img_index][boxe_index] = gt_class_val
                         gt_location[img_index][boxe_index] = gt_box_val
