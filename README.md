@@ -10,7 +10,7 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 <b style='color:#ff5500'>main.py</b> - ssd300的使用用例，包括训练、检测的调用示例。训练时使用voc2012数据集，数据可以从<a href='http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar' target='_blank'>这里</a>下载，解压到\train_datasets\voc2012目录下
 <br/>
 <br/>
-就这2个文件了。
+因为要简洁，就只有这2个文件。
 <br/>
 <br/>
 与原论文不一致的地方：<br/>
