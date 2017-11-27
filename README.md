@@ -1,5 +1,4 @@
 # SSD_for_Tensorflow
-<div style='font-size:12px;color:red; line-height:50px;'>
   
 Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 论文在<a href='https://arxiv.org/abs/1512.02325' target='_blank'>这里</a>
@@ -16,11 +15,11 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 <br/>
 <br/>
 与原论文不一致的地方：<br/>
-<b>1</b>，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]<br/>
-<b>2</b>，论文中default box的width=scale*sqrt(aspect_ratio)、height=scale/sqrt(aspect_ratio) 是错误的，<br/>改为width=sqrt(scale * aspect_ratio)、height=sqrt(scale/aspect_ratio)，有兴趣的朋友可以反推一下。
-<b>3</b>，按照论文中描述长宽比ratio = 1时，scale=sqrt(scale0 * scale1)，即值为sqrt(1.0 * 2.0)=1.414，与scale4=1.5接近，不利于区分default box，因此直接修改为(scale0+scale4)/2=1.25，即取中间值。<br/>
-<b>4</b>，论文中default_box_scale由公式s_k=s_min+(s_max-s_min) * (k-1)/(m-1)生成,源码改为np.linspace生成等差数组,效果一致<br/>
-<b>5</b>，box scale 由[ 0.2 , 0.9 ]改为[ 0.15 , 0.95 ]，因为最小box面积0.2匹配到的groundtruth box数量少，所以改为0.15<br/>
+<b>1</b>，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]<br/><br/><br/>
+<b>2</b>，论文中default box的width=scale*sqrt(aspect_ratio)、height=scale/sqrt(aspect_ratio) 是错误的，<br/>改为width=sqrt(scale * aspect_ratio)、height=sqrt(scale/aspect_ratio)，有兴趣的朋友可以反推一下。<br/><br/>
+<b>3</b>，按照论文中描述长宽比ratio = 1时，scale=sqrt(scale0 * scale1)，即值为sqrt(1.0 * 2.0)=1.414，与scale4=1.5接近，不利于区分default box，因此直接修改为(scale0+scale4)/2=1.25，即取中间值。<br/><br/>
+<b>4</b>，论文中default_box_scale由公式s_k=s_min+(s_max-s_min) * (k-1)/(m-1)生成,源码改为np.linspace生成等差数组,效果一致<br/><br/>
+<b>5</b>，box scale 由[ 0.2 , 0.9 ]改为[ 0.15 , 0.95 ]，因为最小box面积0.2匹配到的groundtruth box数量少，所以改为0.15<br/><br/>
 
 
 <br/><br/>
@@ -34,4 +33,3 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 <br/>
 【整体框架源码已完成，可以参考学习。但是卷积参数还没有跟原论文一致,而且还没完成训练,可能还存在一些问题,如果发现有问题,请告诉我 : jasonli8848@qq.com】<br/>
 
-</div>
