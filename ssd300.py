@@ -36,7 +36,7 @@ class SSD300:
         # 每个特征层的面积比例
         # numpy生成等差数组，效果等同于论文中的s_k=s_min+(s_max-s_min)*(k-1)/(m-1)
         self.default_box_scale = [
-			np.linspace(self.min_box_scale, self.max_box_scale, num = self.default_box_size[0]),
+	    np.linspace(self.min_box_scale, self.max_box_scale, num = self.default_box_size[0]),
             np.linspace(self.min_box_scale, self.max_box_scale, num = self.default_box_size[1]),
             np.linspace(self.min_box_scale, self.max_box_scale, num = self.default_box_size[2]),
             np.linspace(self.min_box_scale, self.max_box_scale, num = self.default_box_size[3]),
