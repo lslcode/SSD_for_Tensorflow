@@ -17,8 +17,8 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 1，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]<br/>
 2，论文中default_box_scale由公式s_k=s_min+(s_max-s_min) * (k-1)/(m-1)生成,源码改为np.linspace生成等差数组,效果一致<br/>
 3，box scale 由[ 0.2 , 0.9 ]改为[ 0.15 , 0.95 ]，因为最小box面积0.2匹配到的groundtruth box数量少，所以改为0.15<br/>
-4，按照论文中描述长宽比ratio = 1时，scale=sqrt(scale0 * scale1)，即值为sqrt(1.0 * 2.0)=1.414，与scale4=1.5接近，不利于区分default box，因此直接修改为(scale0+scale4)/2=1.25，即取中间值。
-5，论文中default box的width=scale*sqrt(aspect_ratio)、height=scale/sqrt(aspect_ratio) 是错误的，改为width=sqrt(scale * aspect_ratio)、height=sqrt(scale/aspect_ratio)，有兴趣的朋友可以反推一下。
+4，按照论文中描述长宽比ratio = 1时，scale=sqrt(scale0 * scale1)，即值为sqrt(1.0 * 2.0)=1.414，与scale4=1.5接近，不利于区分default box，因此直接修改为(scale0+scale4)/2=1.25，即取中间值。<br/>
+5，论文中default box的width=scale*sqrt(aspect_ratio)、height=scale/sqrt(aspect_ratio) 是错误的，<br/>改为width=sqrt(scale * aspect_ratio)、height=sqrt(scale/aspect_ratio)，有兴趣的朋友可以反推一下。
 <br/><br/>
 调用简单示例<br/>
 1,检测<br/>
