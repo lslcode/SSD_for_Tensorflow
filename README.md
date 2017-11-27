@@ -16,6 +16,7 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 与原论文不一致的地方：<br/>
 1，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]<br/>
 2，论文中default_box_scale由公式s_k=s_min+(s_max-s_min) * (k-1)/(m-1)生成,源码改为np.linspace生成等差数组,效果一致<br/>
+3，box scale 由[0.2,0.9]改为[0.15,0.95]<br/>
 <br/><br/>
 调用简单示例<br/>
 1,检测<br/>
