@@ -1,4 +1,6 @@
 # SSD_for_Tensorflow
+<div style='font-size:12px; line-height:30px;'>
+  
 Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 论文在<a href='https://arxiv.org/abs/1512.02325' target='_blank'>这里</a>
 <br/><br/>
@@ -31,3 +33,5 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;loss_all,loss_location,loss_class = ssd_model.run(train_data, actual_data)<br/>
 <br/>
 【整体框架源码已完成，可以参考学习。但是卷积参数还没有跟原论文一致,而且还没完成训练,可能还存在一些问题,如果发现有问题,请告诉我 : jasonli8848@qq.com】<br/>
+
+</div>
