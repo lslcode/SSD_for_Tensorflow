@@ -25,7 +25,7 @@ def testing():
         saver = tf.train.Saver(var_list=tf.trainable_variables())
         if os.path.exists('./session_params/session.ckpt.index') :
             saver.restore(sess, './session_params/session.ckpt')
-            image, actual,file_list = get_traindata_voc2012(1)
+            image, actual,file_list = get_traindata_voc2007(1)
             print('file_list:' + str(file_list))
             for img, act in zip(image, actual):
                 pred_class,pred_location = ssd_model.run([img],None)
@@ -41,7 +41,8 @@ def testing():
                             print('f_class:' + str(a[4])+' - '+str(np.amax(c)))
                             print('f_location:' + str(l))
                             print('----------------------')
-                '''           
+                '''
+                            
         else:
             print('No Data Exists!')
             
@@ -70,7 +71,7 @@ def training():
         while((min_loss_location + min_loss_class) > 0.001 and running_count < 20050):
             running_count += 1
             
-            train_data, actual_data,_ = get_traindata_voc2012(batch_size)
+            train_data, actual_data,_ = get_traindata_voc2007(batch_size)
             
             if len(train_data) > 0:
                 loss_all,loss_class,loss_location,pred_class,pred_location = ssd_model.run(train_data, actual_data)
@@ -81,13 +82,13 @@ def training():
                 if min_loss_class > c:
                     min_loss_class = c
                
-                print('Running:【' + str(running_count) + '】|Loss All:【'+ str(loss_all) + '】|Location:【'+ str(np.sum(loss_location)) + '】|Class:【'+ str(np.sum(loss_class)) + '】|pred_class:【'+ str(np.sum(pred_class))+'|'+str(np.amax(pred_class))+'|'+ str(np.amin(pred_class)) + '】|pred_location:【'+ str(np.sum(pred_location))+'|'+str(np.amax(pred_location))+'|'+ str(np.amin(pred_location)) + '】')
+                print('Running:【' + str(running_count) + '】|Loss All:【'+ str(loss_all) + '】|Location:【'+ str(np.sum(loss_location)) + '】|Class:【'+ str(np.sum(loss_class)) + '】|pred_class:【'+ str(np.sum(pred_class))+'|'+str(np.amax(pred_class))+'|'+ str(np.min(pred_class)) + '】|pred_location:【'+ str(np.sum(pred_location))+'|'+str(np.amax(pred_location))+'|'+ str(np.min(pred_location)) + '】')
                 #print('Running:【' + str(running_count) + '】|Loss All:【' + str(min_loss_location + min_loss_class) + '/' + str(loss_all) + '】|Location:【' + str(min_loss_location) + '/' + str(np.sum(loss_location)) + '】|Class:【' + str(min_loss_class) + '/' + str(np.sum(loss_class)) + '】')
                 #print('loss_location:'+str(loss_location))
                 #print('loss_class:'+str(loss_location))
                 
                 # 定期保存ckpt
-                if running_count % 50 == 0:
+                if running_count % 100 == 0:
                     saver.save(sess, './session_params/session.ckpt')
                     gc.collect()
             else:
@@ -101,12 +102,12 @@ def training():
     print('End Training')
     
 '''
-获取voc2012训练图片数据
+获取voc2007训练图片数据
 train_data：训练批次图像，格式[None,width,height,3]
 actual_data：图像标注数据，格式[None,[None,top_x,top_y,width,height,lable]]
 '''
-file_name_list = os.listdir('./train_datasets/voc2012/JPEGImages/')
-def get_traindata_voc2012(batch_size):
+file_name_list = os.listdir('./train_datasets/voc2007/JPEGImages/')
+def get_traindata_voc2007(batch_size):
     def get_actual_data_from_xml(xml_path):
         lable_arr = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
         actual_item = []
@@ -134,8 +135,8 @@ def get_traindata_voc2012(batch_size):
     file_list = random.sample(file_name_list, batch_size)
     
     for f_name in file_list :
-        img_path = './train_datasets/voc2012/JPEGImages/' + f_name
-        xml_path = './train_datasets/voc2012/Annotations/' + f_name.replace('.jpg','.xml')
+        img_path = './train_datasets/voc2007/JPEGImages/' + f_name
+        xml_path = './train_datasets/voc2007/Annotations/' + f_name.replace('.jpg','.xml')
         if os.path.splitext(img_path)[1].lower() == '.jpg' :
             actual_item = get_actual_data_from_xml(xml_path)
             if actual_item != None :
@@ -165,4 +166,3 @@ if __name__ == '__main__':
     training()
     print('\nEnd Running')
    
-        
