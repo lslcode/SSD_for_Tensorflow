@@ -456,7 +456,7 @@ class SSD300:
             for c in pre_class:
                 # softmax归一化，减去max预防溢出
                 max_v = np.amax(c)
-                pred = np.exp(c - max_v) / (np.sum(np.exp(c - max_v))/self.extra_decimal)
+                pred = np.exp(c - max_v) / (np.sum(np.exp(c - max_v))+self.extra_decimal)
                 loss_confs.append(np.amax(pred))
                 
             max_length = min(len(loss_confs),max_length)
