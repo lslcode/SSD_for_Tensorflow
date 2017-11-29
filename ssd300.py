@@ -298,7 +298,7 @@ class SSD300:
         self.all_default_boxs = self.generate_all_default_boxs()
         self.all_default_boxs_len = len(self.all_default_boxs)
         print('##   all default boxs : ' + str(self.all_default_boxs_len))
-        # 用于Testing返回值
+
         self.pred_set = [self.feature_class, self.feature_location]
 
         # 输入真实数据
@@ -313,11 +313,12 @@ class SSD300:
         self.loss_class = tf.reduce_sum((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.feature_class, labels=self.groundtruth_class) * self.groundtruth_count), reduction_indices=1) / (tf.reduce_sum(self.groundtruth_count, reduction_indices = 1)+self.extra_decimal)
         self.loss_all = tf.reduce_sum(tf.add(self.loss_class , self.loss_location))
         self.loss = [self.loss_all,self.loss_location,self.loss_class]
+
         # loss优化函数
         self.optimizer = tf.train.AdamOptimizer(0.001)
         #self.optimizer = tf.train.GradientDescentOptimizer(0.001)
         self.train = self.optimizer.minimize(self.loss_all)
-         
+
     # 图像检测与训练
     # input_images : 输入图像数据，格式:[None,width,hight,channel]
     # actual_data : 标注数据，格式:[None,[None,top_X,top_Y,width,hight,classes]] , classes值范围[0,classes_size)
@@ -328,7 +329,7 @@ class SSD300:
                 raise Exception('actual_data参数不存在!')
             if len(input_images) != len(actual_data):
                 raise Exception('input_images 与 actual_data参数长度不对应!')
-        
+
             f_class, f_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
             #print('f_class :【'+str(np.sum(f_class))+'|'+str(np.amax(f_class))+'|'+str(np.amin(f_class))+'】|f_location : 【'+str(np.sum(f_location))+'|'+str(np.amax(f_location))+'|'+str(np.amin(f_location))+'】')           
             self.input_actual_data = actual_data
@@ -363,39 +364,25 @@ class SSD300:
         # 检测部分
         else :
             # 预测结果
-            pred_class,pred_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
-            return pred_class , pred_location
-            '''
+            self.feature_class = tf.exp(self.feature_class)
+            input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
             # 过滤冗余的预测结果
-            top_size = int(self.all_default_boxs_len / 20)
-            possibilities = []
-            for c in pred_class[0] :
-                possibilities.append(np.amax(np.exp(c)) / (np.sum(np.exp(c))+self.extra_decimal))
-            indicies = np.argpartition(possibilities,-top_size)[-top_size:]
-            indicies = indicies[0.1 < np.asarray(possibilities)[indicies]]
-                
-            pred_class = pred_class[0][indicies]
-            pred_location = pred_location[0][indicies]
-
-            result_location = []
-            result_class = []
-            
-            for p_c, p_l in zip(pred_class, pred_location):
-                p_class = np.argmax(p_c)
-                if p_class == self.background_classes_val:
-                    continue
-                isFilter = False
-                # 这里需要优化，过滤后的box可能不是最完整的!
-                for r_class, r_loc in zip(result_class, result_location):
-                    if r_class == p_class and self.jaccard(r_loc, p_l) > self.jaccard_value :
-                        isFilter = True
-                        break
-                if isFilter == False:
-                    result_location.append(p_l)
-                    result_class.append(p_class)        
-            
-            return result_class , result_location
-            '''
+            box_top_set = tf.nn.top_k(input_softmax_result, int(self.all_default_boxs_len / 20))
+            box_top_index = box_top_set.indices
+            box_top_value = box_top_set.values
+            f_class, f_location, box_top_index, box_top_value = self.sess.run([self.feature_class, self.feature_location, box_top_index, box_top_value], feed_dict={self.input : input_images})
+            top_shape = np.shape(box_top_index)
+            pred_class = []
+            pred_location = []
+            for i in range(top_shape[0]) :
+                item_img_class = []
+                item_img_location = []
+                for j in range(top_shape[1]) : 
+                    item_img_class.append(np.argmax(f_class[i][box_top_index[i][j]]))
+                    item_img_location.append(f_location[i][box_top_index[i][j]])
+                pred_class.append(item_img_class)
+                pred_location.append(item_img_location)
+            return pred_class , pred_location
 
     # Batch Normalization算法
     #批量归一标准化操作，预防梯度弥散、消失与爆炸，同时替换dropout预防过拟合的操作
@@ -446,7 +433,7 @@ class SSD300:
         input_actual_data_len = len(self.input_actual_data)
         
         # 生成空数组，用于保存groundtruth
-        gt_class = np.zeros((input_actual_data_len, self.all_default_boxs_len))
+        gt_class = np.ones((input_actual_data_len, self.all_default_boxs_len)) * self.background_classes_val
         gt_location = np.zeros((input_actual_data_len, self.all_default_boxs_len, 4))
         gt_positives = np.zeros((input_actual_data_len, self.all_default_boxs_len))
         gt_negatives = np.zeros((input_actual_data_len, self.all_default_boxs_len))
@@ -458,7 +445,6 @@ class SSD300:
                 max_v = np.amax(c)
                 pred = np.exp(c - max_v) / (np.sum(np.exp(c - max_v))+self.extra_decimal)
                 loss_confs.append(np.amax(pred))
-                
             max_length = min(len(loss_confs),max_length)
             return np.argpartition(loss_confs, -max_length)[-max_length:] 
         
@@ -482,7 +468,7 @@ class SSD300:
             indicies = extract_highest_indicies(f_class[img_index], ((positives_count + 1) * 3))
             # 初始化负例训练数据
             for max_box_index in indicies:
-                if np.sum(gt_location[img_index][max_box_index]) == 0 : 
+                if np.sum(gt_location[img_index][max_box_index]) == 0 and np.argmax(f_class[img_index][max_box_index]) != self.background_classes_val : 
                     gt_class[img_index][max_box_index] = self.background_classes_val
                     gt_location[img_index][max_box_index] = [0, 0, 0, 0]
                     gt_positives[img_index][max_box_index] = 0
