@@ -5,6 +5,7 @@ author: lslcode [jasonli8848@qq.com]
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.training import moving_averages
 
 class SSD300:
     def __init__(self, tf_sess, isTraining):
@@ -332,34 +333,33 @@ class SSD300:
 
             f_class, f_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
             #print('f_class :【'+str(np.sum(f_class))+'|'+str(np.amax(f_class))+'|'+str(np.amin(f_class))+'】|f_location : 【'+str(np.sum(f_location))+'|'+str(np.amax(f_location))+'|'+str(np.amin(f_location))+'】')           
-            self.input_actual_data = actual_data
-            gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(f_class)
-            #print('gt_class :【'+str(np.sum(gt_class))+'|'+str(np.amax(gt_class))+'|'+str(np.amin(gt_class))+'】|gt_location : 【'+str(np.sum(gt_location))+'|'+str(np.amax(gt_location))+'|'+str(np.amin(gt_location))+'】')            
-            #print('gt_positives :【'+str(np.sum(gt_positives))+'|'+str(np.amax(gt_positives))+'|'+str(np.amin(gt_positives))+'】|gt_negatives : 【'+str(np.sum(gt_negatives))+'|'+str(np.amax(gt_negatives))+'|'+str(np.amin(gt_negatives))+'】')            
+            with tf.control_dependencies(self.pred_set):
+                self.input_actual_data = actual_data
+                gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(f_class)
+                #print('gt_class :【'+str(np.sum(gt_class))+'|'+str(np.amax(gt_class))+'|'+str(np.amin(gt_class))+'】|gt_location : 【'+str(np.sum(gt_location))+'|'+str(np.amax(gt_location))+'|'+str(np.amin(gt_location))+'】')            
+                #print('gt_positives :【'+str(np.sum(gt_positives))+'|'+str(np.amax(gt_positives))+'|'+str(np.amin(gt_positives))+'】|gt_negatives : 【'+str(np.sum(gt_negatives))+'|'+str(np.amax(gt_negatives))+'|'+str(np.amin(gt_negatives))+'】')
+                self.sess.run(self.train, feed_dict={
+                    self.input : input_images,
+                    self.groundtruth_class : gt_class,
+                    self.groundtruth_location : gt_location,
+                    self.groundtruth_positives : gt_positives,
+                    self.groundtruth_negatives : gt_negatives
+                })
+                with tf.control_dependencies([self.train]):
+                    loss_all,loss_location,loss_class = self.sess.run(self.loss, feed_dict={
+                        self.input : input_images,
+                        self.groundtruth_class : gt_class,
+                        self.groundtruth_location : gt_location,
+                        self.groundtruth_positives : gt_positives,
+                        self.groundtruth_negatives : gt_negatives
+                    })
+                    # 释放资源
+                    self.feature_class = None
+                    self.feature_location = None
+                    self.feature_maps = None
+                    self.tmp_all_feature = None
 
-            self.sess.run(self.train, feed_dict={
-                self.input : input_images,
-                self.groundtruth_class : gt_class,
-                self.groundtruth_location : gt_location,
-                self.groundtruth_positives : gt_positives,
-                self.groundtruth_negatives : gt_negatives
-            })
-
-            loss_all,loss_location,loss_class = self.sess.run(self.loss, feed_dict={
-                self.input : input_images,
-                self.groundtruth_class : gt_class,
-                self.groundtruth_location : gt_location,
-                self.groundtruth_positives : gt_positives,
-                self.groundtruth_negatives : gt_negatives
-            })
-
-            # 释放资源
-            self.feature_class = None
-            self.feature_location = None
-            self.feature_maps = None
-            self.tmp_all_feature = None
-
-            return loss_all, loss_class, loss_location, f_class, f_location
+                    return loss_all, loss_class, loss_location, f_class, f_location
 
         # 检测部分
         else :
@@ -367,7 +367,7 @@ class SSD300:
             self.feature_class = tf.exp(self.feature_class)
             input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
             # 过滤冗余的预测结果
-            box_top_set = tf.nn.top_k(input_softmax_result, int(self.all_default_boxs_len / 20))
+            box_top_set = tf.nn.top_k(input_softmax_result, 200)
             box_top_index = box_top_set.indices
             box_top_value = box_top_set.values
             f_class, f_location, box_top_index, box_top_value = self.sess.run([self.feature_class, self.feature_location, box_top_index, box_top_value], feed_dict={self.input : input_images})
@@ -386,13 +386,13 @@ class SSD300:
 
     # Batch Normalization算法
     #批量归一标准化操作，预防梯度弥散、消失与爆炸，同时替换dropout预防过拟合的操作
-    def batch_normalization(self,input):
+    '''
+    def batch_normalization(self, input):
         bn_input_shape = input.get_shape()
-        bn_input_params = bn_input_shape.as_list()[-1]
         bn_batch_mean, bn_batch_var = tf.nn.moments(input, list(range(len(bn_input_shape) - 1)))
         bn_ema = tf.train.ExponentialMovingAverage(decay=self.conv_bn_decay)
-        bn_offset = tf.Variable(tf.zeros([bn_input_params]))
-        bn_scale = tf.Variable(tf.ones([bn_input_params]))
+        bn_offset = tf.Variable(tf.zeros(shape=bn_input_shape[-1:]))
+        bn_scale = tf.Variable(tf.ones(shape=bn_input_shape[-1:]))
 
         def mean_var_with_update():
             ema_apply_op = bn_ema.apply([bn_batch_mean, bn_batch_var])
@@ -401,6 +401,23 @@ class SSD300:
 
         bn_mean, bn_variance = tf.cond(tf.constant(self.isTraining), mean_var_with_update,lambda: (bn_ema.average(bn_batch_mean), bn_ema.average(bn_batch_var)))
         return tf.nn.batch_normalization(input, bn_mean, bn_variance, bn_offset, bn_scale, self.conv_bn_epsilon)
+
+    '''
+    def batch_normalization(self, input):
+        bn_input_shape = input.get_shape()
+        scale = tf.Variable(tf.ones([bn_input_shape[-1]]))
+        beta = tf.Variable(tf.zeros([bn_input_shape[-1]]))
+        pop_mean = tf.Variable(tf.zeros([bn_input_shape[-1]]), trainable=False)
+        pop_var = tf.Variable(tf.ones([bn_input_shape[-1]]), trainable=False)
+        if self.isTraining :
+            batch_mean, batch_var = tf.nn.moments(input, list(range(len(bn_input_shape) - 1)))
+            train_mean = tf.assign(pop_mean, pop_mean * self.conv_bn_decay + batch_mean * (1 - self.conv_bn_decay))
+            train_var = tf.assign(pop_var, pop_var * self.conv_bn_decay + batch_var * (1 - self.conv_bn_decay))
+            with tf.control_dependencies([train_mean, train_var]):
+                return tf.nn.batch_normalization(input, batch_mean, batch_var, beta, scale, self.conv_bn_epsilon)
+        else:
+            return tf.nn.batch_normalization(input, pop_mean, pop_var, beta, scale, self.conv_bn_epsilon)
+    
 
     # smooth_L1 算法
     def smooth_L1(self, x):
