@@ -161,8 +161,9 @@ def get_traindata_voc2007(batch_size):
 if __name__ == '__main__':
     print('\nStart Running')
     # 检测
-    #testing()
+    testing()
     # 训练
-    training()
+    #training()
     print('\nEnd Running')
    
+        
