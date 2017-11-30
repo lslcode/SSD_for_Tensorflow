@@ -310,7 +310,7 @@ class SSD300:
         self.groundtruth_negatives = tf.placeholder(shape=[None,self.all_default_boxs_len], dtype=tf.float32,name='groundtruth_negatives')
 
         self.groundtruth_count = tf.add(self.groundtruth_positives , self.groundtruth_negatives)
-        self.loss_location = tf.reduce_sum(tf.reduce_sum(self.smooth_L1(tf.subtract(self.groundtruth_location , self.feature_location)), reduction_indices=2) * self.groundtruth_positives, reduction_indices=1) / ((tf.reduce_sum(self.groundtruth_positives, reduction_indices = 1))+self.extra_decimal)
+        self.loss_location = tf.reduce_sum(tf.reduce_sum(self.smooth_L1(tf.subtract(self.groundtruth_location , self.feature_location)), reduction_indices=2) * self.groundtruth_count, reduction_indices=1) / ((tf.reduce_sum(self.groundtruth_count, reduction_indices = 1))+self.extra_decimal)
         self.loss_class = tf.reduce_sum((tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.feature_class, labels=self.groundtruth_class) * self.groundtruth_count), reduction_indices=1) / (tf.reduce_sum(self.groundtruth_count, reduction_indices = 1)+self.extra_decimal)
         self.loss_all = tf.reduce_sum(tf.add(self.loss_class , self.loss_location))
         self.loss = [self.loss_all,self.loss_location,self.loss_class]
@@ -345,27 +345,29 @@ class SSD300:
                     self.groundtruth_positives : gt_positives,
                     self.groundtruth_negatives : gt_negatives
                 })
-                with tf.control_dependencies([self.train]):
-                    loss_all,loss_location,loss_class = self.sess.run(self.loss, feed_dict={
-                        self.input : input_images,
-                        self.groundtruth_class : gt_class,
-                        self.groundtruth_location : gt_location,
-                        self.groundtruth_positives : gt_positives,
-                        self.groundtruth_negatives : gt_negatives
-                    })
-                    # 释放资源
-                    self.feature_class = None
-                    self.feature_location = None
-                    self.feature_maps = None
-                    self.tmp_all_feature = None
+                loss_all,loss_location,loss_class = self.sess.run(self.loss, feed_dict={
+                    self.input : input_images,
+                    self.groundtruth_class : gt_class,
+                    self.groundtruth_location : gt_location,
+                    self.groundtruth_positives : gt_positives,
+                    self.groundtruth_negatives : gt_negatives
+                })
+                # 释放资源
+                self.feature_class = None
+                self.feature_location = None
+                self.feature_maps = None
+                self.tmp_all_feature = None
 
-                    return loss_all, loss_class, loss_location, f_class, f_location
+                return loss_all, loss_class, loss_location, f_class, f_location
 
         # 检测部分
         else :
+            pred_class , pred_location = self.sess.run([self.feature_class, self.feature_location], feed_dict={self.input : input_images})
+            '''
             # 预测结果
-            self.feature_class = tf.exp(self.feature_class)
-            input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
+            #self.feature_class = tf.exp(self.feature_class)
+            #input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
+            input_softmax_result = tf.nn.softmax(self.feature_class) 
             # 过滤冗余的预测结果
             box_top_set = tf.nn.top_k(input_softmax_result, 200)
             box_top_index = box_top_set.indices
@@ -382,27 +384,11 @@ class SSD300:
                     item_img_location.append(f_location[i][box_top_index[i][j]])
                 pred_class.append(item_img_class)
                 pred_location.append(item_img_location)
+            '''
             return pred_class , pred_location
-
+            
     # Batch Normalization算法
     #批量归一标准化操作，预防梯度弥散、消失与爆炸，同时替换dropout预防过拟合的操作
-    '''
-    def batch_normalization(self, input):
-        bn_input_shape = input.get_shape()
-        bn_batch_mean, bn_batch_var = tf.nn.moments(input, list(range(len(bn_input_shape) - 1)))
-        bn_ema = tf.train.ExponentialMovingAverage(decay=self.conv_bn_decay)
-        bn_offset = tf.Variable(tf.zeros(shape=bn_input_shape[-1:]))
-        bn_scale = tf.Variable(tf.ones(shape=bn_input_shape[-1:]))
-
-        def mean_var_with_update():
-            ema_apply_op = bn_ema.apply([bn_batch_mean, bn_batch_var])
-            with tf.control_dependencies([ema_apply_op]):
-                return tf.identity(bn_batch_mean), tf.identity(bn_batch_var)
-
-        bn_mean, bn_variance = tf.cond(tf.constant(self.isTraining), mean_var_with_update,lambda: (bn_ema.average(bn_batch_mean), bn_ema.average(bn_batch_var)))
-        return tf.nn.batch_normalization(input, bn_mean, bn_variance, bn_offset, bn_scale, self.conv_bn_epsilon)
-
-    '''
     def batch_normalization(self, input):
         bn_input_shape = input.get_shape()
         scale = tf.Variable(tf.ones([bn_input_shape[-1]]))
@@ -418,7 +404,6 @@ class SSD300:
         else:
             return tf.nn.batch_normalization(input, pop_mean, pop_var, beta, scale, self.conv_bn_epsilon)
     
-
     # smooth_L1 算法
     def smooth_L1(self, x):
         return tf.where(tf.less_equal(tf.abs(x),1.0), tf.multiply(0.5, tf.pow(x, 2.0)), tf.subtract(tf.abs(x), 0.5))
@@ -459,18 +444,16 @@ class SSD300:
             loss_confs = []
             for c in pre_class:
                 # softmax归一化，减去max预防溢出
-                max_v = np.amax(c)
-                pred = np.exp(c - max_v) / (np.sum(np.exp(c - max_v))+self.extra_decimal)
-                loss_confs.append(np.amax(pred))
+                e_x = np.exp(c - np.max(c))
+                loss_confs.append(np.amax(e_x / (np.sum(e_x)+self.extra_decimal)))
             max_length = min(len(loss_confs),max_length)
             return np.argpartition(loss_confs, -max_length)[-max_length:] 
         
         for img_index in range(input_actual_data_len):
             # 初始化正例训练数据
-            positives_count = 0
             for pre_actual in self.input_actual_data[img_index]:
-                gt_class_val = np.amax(pre_actual[4:])
-                gt_box_val = pre_actual[:4]
+                gt_class_val = pre_actual[-1:][0]
+                gt_box_val = pre_actual[:-1]
                 for boxe_index in range(self.all_default_boxs_len):
                     jacc = self.jaccard(gt_box_val, self.all_default_boxs[boxe_index])
                     if jacc > self.jaccard_value or jacc == self.jaccard_value:
@@ -478,11 +461,10 @@ class SSD300:
                         gt_location[img_index][boxe_index] = gt_box_val
                         gt_positives[img_index][boxe_index] = 1
                         gt_negatives[img_index][boxe_index] = 0
-                        positives_count += 1
 
             # 从分类预测的所有boxs中，获取分类置信度最高的前 (符合匹配的3倍数量) 位的int位置索引数组
             # positives_count+1 预防positives_count=0，jaccard有可能没有匹配任何defualt box
-            indicies = extract_highest_indicies(f_class[img_index], ((positives_count + 1) * 3))
+            indicies = extract_highest_indicies(f_class[img_index], ((int(np.sum(gt_positives[img_index])) + 1) * 3))
             # 初始化负例训练数据
             for max_box_index in indicies:
                 if np.sum(gt_location[img_index][max_box_index]) == 0 and np.argmax(f_class[img_index][max_box_index]) != self.background_classes_val : 
