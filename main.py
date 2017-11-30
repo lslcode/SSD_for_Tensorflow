@@ -25,24 +25,24 @@ def testing():
         saver = tf.train.Saver(var_list=tf.trainable_variables())
         if os.path.exists('./session_params/session.ckpt.index') :
             saver.restore(sess, './session_params/session.ckpt')
-            image, actual,file_list = get_traindata_voc2007(1)
+            image, actual,file_list = get_traindata_voc2012(3)
+            pred_class,pred_location = ssd_model.run(image,None)
             print('file_list:' + str(file_list))
-            for img, act in zip(image, actual):
-                pred_class,pred_location = ssd_model.run([img],None)
-                
+            for index, act in zip(range(len(image)), actual):
                 #print('end time : ' + time.asctime(time.localtime(time.time())))
-                print('pred_class:' + str(pred_class))
-                print('pred_location:' + str(pred_location))
-                '''
+                #print('pred_class:' + str(pred_class))
+                #print('pred_location:' + str(pred_location))
                 for a in act :
-                    print('actual:' + str(a))
-                    for c,l in zip(pred_class,pred_location):
+                    print('【img-'+str(index)+' actual】:' + str(a))
+                    for c,l in zip(pred_class[index],pred_location[index]):
                         if(np.argmax(c) == a[4]):
-                            print('f_class:' + str(a[4])+' - '+str(np.amax(c)))
-                            print('f_location:' + str(l))
-                            print('----------------------')
-                '''
-                            
+                            if((l<[1,1,1,1]).all()):
+                                print('f_class:' + str(a[4])+' - '+str(np.argmax(c)))
+                                print('f_location:' + str(l))
+                                print('----------------------')
+                         
+ 
+                        
         else:
             print('No Data Exists!')
             
@@ -71,7 +71,7 @@ def training():
         while((min_loss_location + min_loss_class) > 0.001 and running_count < 20050):
             running_count += 1
             
-            train_data, actual_data,_ = get_traindata_voc2007(batch_size)
+            train_data, actual_data,_ = get_traindata_voc2012(batch_size)
             
             if len(train_data) > 0:
                 loss_all,loss_class,loss_location,pred_class,pred_location = ssd_model.run(train_data, actual_data)
@@ -102,12 +102,12 @@ def training():
     print('End Training')
     
 '''
-获取voc2007训练图片数据
+获取voc2012训练图片数据
 train_data：训练批次图像，格式[None,width,height,3]
 actual_data：图像标注数据，格式[None,[None,top_x,top_y,width,height,lable]]
 '''
-file_name_list = os.listdir('./train_datasets/voc2007/JPEGImages/')
-def get_traindata_voc2007(batch_size):
+file_name_list = os.listdir('./train_datasets/voc2012/JPEGImages/')
+def get_traindata_voc2012(batch_size):
     def get_actual_data_from_xml(xml_path):
         lable_arr = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
         actual_item = []
@@ -135,8 +135,8 @@ def get_traindata_voc2007(batch_size):
     file_list = random.sample(file_name_list, batch_size)
     
     for f_name in file_list :
-        img_path = './train_datasets/voc2007/JPEGImages/' + f_name
-        xml_path = './train_datasets/voc2007/Annotations/' + f_name.replace('.jpg','.xml')
+        img_path = './train_datasets/voc2012/JPEGImages/' + f_name
+        xml_path = './train_datasets/voc2012/Annotations/' + f_name.replace('.jpg','.xml')
         if os.path.splitext(img_path)[1].lower() == '.jpg' :
             actual_item = get_actual_data_from_xml(xml_path)
             if actual_item != None :
@@ -161,9 +161,9 @@ def get_traindata_voc2007(batch_size):
 if __name__ == '__main__':
     print('\nStart Running')
     # 检测
-    testing()
+    #testing()
     # 训练
-    #training()
+    training()
     print('\nEnd Running')
    
         
