@@ -25,14 +25,17 @@ def testing():
         saver = tf.train.Saver(var_list=tf.trainable_variables())
         if os.path.exists('./session_params/session.ckpt.index') :
             saver.restore(sess, './session_params/session.ckpt')
-            image, actual,file_list = get_traindata_voc2012(1)
-            pred_class,pred_location,_ = ssd_model.run(image,None)
+            image, actual,file_list = get_traindata_voc2012(3)
+            pred_class,pred_location,pred_default_box = ssd_model.run(image,None)
             print('file_list:' + str(file_list))
+            
             for index, act in zip(range(len(image)), actual):
                 for a in act :
                     print('【img-'+str(index)+' actual】:' + str(a))
                 print('pred_class:' + str(pred_class[index]))
-                print('pred_location:' + str(pred_location[index]))                     
+                print('pred_location:' + str(pred_location[index]))
+                print('pred_default_box:' + str(pred_default_box[index]))   
+                                   
         else:
             print('No Data Exists!')
         sess.close()
@@ -57,11 +60,10 @@ def training():
         print('\nStart Training')
         min_loss_location = 100000.
         min_loss_class = 100000.
-        while((min_loss_location + min_loss_class) > 0.001 and running_count < 20050):
+        while((min_loss_location + min_loss_class) > 1 and running_count < 10000):
             running_count += 1
             
             train_data, actual_data,_ = get_traindata_voc2012(batch_size)
-            
             if len(train_data) > 0:
                 loss_all,loss_class,loss_location,pred_class,pred_location = ssd_model.run(train_data, actual_data)
                 l = np.sum(loss_location)
@@ -71,14 +73,12 @@ def training():
                 if min_loss_class > c:
                     min_loss_class = c
                
-                print('Running:【' + str(running_count) + '】|Loss All:【'+ str(loss_all) + '】|Location:【'+ str(np.sum(loss_location)) + '】|Class:【'+ str(np.sum(loss_class)) + '】|pred_class:【'+ str(np.sum(pred_class))+'|'+str(np.amax(pred_class))+'|'+ str(np.min(pred_class)) + '】|pred_location:【'+ str(np.sum(pred_location))+'|'+str(np.amax(pred_location))+'|'+ str(np.min(pred_location)) + '】')
-                #print('Running:【' + str(running_count) + '】|Loss All:【' + str(min_loss_location + min_loss_class) + '/' + str(loss_all) + '】|Location:【' + str(min_loss_location) + '/' + str(np.sum(loss_location)) + '】|Class:【' + str(min_loss_class) + '/' + str(np.sum(loss_class)) + '】')
-                #print('loss_location:'+str(loss_location))
-                #print('loss_class:'+str(loss_location))
+                print('Running:【' + str(running_count) + '】|Loss All:【'+str(min_loss_location + min_loss_class)+'|'+ str(loss_all) + '】|Location:【'+ str(np.sum(loss_location)) + '】|Class:【'+ str(np.sum(loss_class)) + '】|pred_class:【'+ str(np.sum(pred_class))+'|'+str(np.amax(pred_class))+'|'+ str(np.min(pred_class)) + '】|pred_location:【'+ str(np.sum(pred_location))+'|'+str(np.amax(pred_location))+'|'+ str(np.min(pred_location)) + '】')
                 
                 # 定期保存ckpt
-                if running_count % 100 == 0:
+                if running_count % 50 == 0:
                     saver.save(sess, './session_params/session.ckpt')
+                    print('session.ckpt has been saved.')
                     gc.collect()
             else:
                 print('No Data Exists!')
@@ -150,9 +150,9 @@ def get_traindata_voc2012(batch_size):
 if __name__ == '__main__':
     print('\nStart Running')
     # 检测
-    testing()
+    #testing()
     # 训练
-    #training()
+    training()
     print('\nEnd Running')
    
         
