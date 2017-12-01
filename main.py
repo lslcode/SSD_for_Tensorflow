@@ -25,27 +25,17 @@ def testing():
         saver = tf.train.Saver(var_list=tf.trainable_variables())
         if os.path.exists('./session_params/session.ckpt.index') :
             saver.restore(sess, './session_params/session.ckpt')
-            image, actual,file_list = get_traindata_voc2012(3)
-            pred_class,pred_location = ssd_model.run(image,None)
+            image, actual,file_list = get_traindata_voc2012(1)
+            pred_class,pred_location,pred_default_box = ssd_model.run(image,None)
             print('file_list:' + str(file_list))
             for index, act in zip(range(len(image)), actual):
-                #print('end time : ' + time.asctime(time.localtime(time.time())))
-                #print('pred_class:' + str(pred_class))
-                #print('pred_location:' + str(pred_location))
                 for a in act :
                     print('【img-'+str(index)+' actual】:' + str(a))
-                    for c,l in zip(pred_class[index],pred_location[index]):
-                        if(np.argmax(c) == a[4]):
-                            if((l<[1,1,1,1]).all()):
-                                print('f_class:' + str(a[4])+' - '+str(np.argmax(c)))
-                                print('f_location:' + str(l))
-                                print('----------------------')
-                         
- 
-                        
+                print('pred_class:' + str(pred_class[index]))
+                print('pred_location:' + str(pred_location[index]))
+                print('pred_default_box:' + str(pred_default_box[index]))                             
         else:
             print('No Data Exists!')
-            
         sess.close()
     
 '''
@@ -161,9 +151,9 @@ def get_traindata_voc2012(batch_size):
 if __name__ == '__main__':
     print('\nStart Running')
     # 检测
-    #testing()
+    testing()
     # 训练
-    training()
+    #training()
     print('\nEnd Running')
    
         
