@@ -497,7 +497,6 @@ class SSD300:
         rect1_ = [x if x >= 0 else 0 for x in rect1]
         rect2_ = [x if x >= 0 else 0 for x in rect2]
         s = rect1_[2] * rect1_[3] + rect2_[2] * rect2_[3]
-        # rect1 and rect2 => A∧B
         intersect = 0
         top_x = max(rect1_[0], rect2_[0])
         top_y = max(rect1_[1], rect2_[1])
@@ -505,8 +504,6 @@ class SSD300:
         bottom_y = min(rect1_[1] + rect1_[3], rect2_[1] + rect2_[3])
         if bottom_y > top_y and bottom_x > top_x:
             intersect = (bottom_y - top_y) * (bottom_x - top_x)
-        # rect1 or rect2 => A∨B
         union = s - intersect
-        # A∧B / A∨B
         return intersect / union
     
