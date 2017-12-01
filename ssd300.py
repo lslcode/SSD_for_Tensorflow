@@ -5,7 +5,6 @@ author: lslcode [jasonli8848@qq.com]
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.training import moving_averages
 
 class SSD300:
     def __init__(self, tf_sess, isTraining):
@@ -332,12 +331,9 @@ class SSD300:
                 raise Exception('input_images 与 actual_data参数长度不对应!')
 
             f_class, f_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
-            #print('f_class :【'+str(np.sum(f_class))+'|'+str(np.amax(f_class))+'|'+str(np.amin(f_class))+'】|f_location : 【'+str(np.sum(f_location))+'|'+str(np.amax(f_location))+'|'+str(np.amin(f_location))+'】')           
             with tf.control_dependencies(self.pred_set):
                 self.input_actual_data = actual_data
                 gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(f_class)
-                #print('gt_class :【'+str(np.sum(gt_class))+'|'+str(np.amax(gt_class))+'|'+str(np.amin(gt_class))+'】|gt_location : 【'+str(np.sum(gt_location))+'|'+str(np.amax(gt_location))+'|'+str(np.amin(gt_location))+'】')            
-                #print('gt_positives :【'+str(np.sum(gt_positives))+'|'+str(np.amax(gt_positives))+'|'+str(np.amin(gt_positives))+'】|gt_negatives : 【'+str(np.sum(gt_negatives))+'|'+str(np.amax(gt_negatives))+'|'+str(np.amin(gt_negatives))+'】')
                 self.sess.run(self.train, feed_dict={
                     self.input : input_images,
                     self.groundtruth_class : gt_class,
@@ -362,30 +358,46 @@ class SSD300:
 
         # 检测部分
         else :
+            '''
             pred_class , pred_location = self.sess.run([self.feature_class, self.feature_location], feed_dict={self.input : input_images})
+            return pred_class , pred_location
             '''
             # 预测结果
-            #self.feature_class = tf.exp(self.feature_class)
-            #input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
-            input_softmax_result = tf.nn.softmax(self.feature_class) 
+            self.feature_class = tf.exp(self.feature_class)
+            input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
             # 过滤冗余的预测结果
-            box_top_set = tf.nn.top_k(input_softmax_result, 200)
+            box_top_set = tf.nn.top_k(input_softmax_result, 400)
             box_top_index = box_top_set.indices
             box_top_value = box_top_set.values
             f_class, f_location, box_top_index, box_top_value = self.sess.run([self.feature_class, self.feature_location, box_top_index, box_top_value], feed_dict={self.input : input_images})
             top_shape = np.shape(box_top_index)
             pred_class = []
             pred_location = []
+            pred_default_box = []
             for i in range(top_shape[0]) :
                 item_img_class = []
                 item_img_location = []
+                item_img_box = []
                 for j in range(top_shape[1]) : 
-                    item_img_class.append(np.argmax(f_class[i][box_top_index[i][j]]))
-                    item_img_location.append(f_location[i][box_top_index[i][j]])
+                    is_filter = False
+                    p_class = np.argmax(f_class[i][box_top_index[i][j]])
+                    p_location = (f_location[i][box_top_index[i][j]])
+                    p_box = self.all_default_boxs[j]
+                    if(p_location<[0,0,0,0]).any() or (p_location>[1,1,1,1]).any():
+                        is_filter = True
+                    else:
+                        for p_c,p_l in zip(item_img_class, item_img_location):
+                            if(self.jaccard(p_location,p_location)>0.3 and p_class == p_c):
+                                is_filter = True
+                                break
+                    if(is_filter==False):
+                        item_img_class.append(p_class)
+                        item_img_location.append(p_location.tolist())
+                        item_img_box.append(p_box)
                 pred_class.append(item_img_class)
                 pred_location.append(item_img_location)
-            '''
-            return pred_class , pred_location
+                pred_default_box.append(item_img_box)
+            return pred_class, pred_location, pred_default_box
             
 
     # Batch Normalization算法
@@ -480,6 +492,7 @@ class SSD300:
         rect1_ = [x if x >= 0 else 0 for x in rect1]
         rect2_ = [x if x >= 0 else 0 for x in rect2]
         s = rect1_[2] * rect1_[3] + rect2_[2] * rect2_[3]
+        # rect1 and rect2 => A∧B
         intersect = 0
         top_x = max(rect1_[0], rect2_[0])
         top_y = max(rect1_[1], rect2_[1])
@@ -487,6 +500,8 @@ class SSD300:
         bottom_y = min(rect1_[1] + rect1_[3], rect2_[1] + rect2_[3])
         if bottom_y > top_y and bottom_x > top_x:
             intersect = (bottom_y - top_y) * (bottom_x - top_x)
+        # rect1 or rect2 => A∨B
         union = s - intersect
+        # A∧B / A∨B
         return intersect / union
     
