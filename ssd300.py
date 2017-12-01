@@ -316,7 +316,7 @@ class SSD300:
         self.loss = [self.loss_all,self.loss_location,self.loss_class]
 
         # loss优化函数
-        self.optimizer = tf.train.AdamOptimizer(0.001)
+        self.optimizer = tf.train.AdamOptimizer(0.0001)
         #self.optimizer = tf.train.GradientDescentOptimizer(0.001)
         self.train = self.optimizer.minimize(self.loss_all)
 
@@ -387,8 +387,26 @@ class SSD300:
             '''
             return pred_class , pred_location
             
+
     # Batch Normalization算法
     #批量归一标准化操作，预防梯度弥散、消失与爆炸，同时替换dropout预防过拟合的操作
+    '''
+    def batch_normalization(self, input):
+        bn_input_shape = input.get_shape()
+        bn_batch_mean, bn_batch_var = tf.nn.moments(input, list(range(len(bn_input_shape) - 1)))
+        bn_ema = tf.train.ExponentialMovingAverage(decay=self.conv_bn_decay)
+        bn_offset = tf.Variable(tf.zeros(shape=bn_input_shape[-1:]))
+        bn_scale = tf.Variable(tf.ones(shape=bn_input_shape[-1:]))
+
+        def mean_var_with_update():
+            ema_apply_op = bn_ema.apply([bn_batch_mean, bn_batch_var])
+            with tf.control_dependencies([ema_apply_op]):
+                return tf.identity(bn_batch_mean), tf.identity(bn_batch_var)
+
+        bn_mean, bn_variance = tf.cond(tf.constant(self.isTraining), mean_var_with_update,lambda: (bn_ema.average(bn_batch_mean), bn_ema.average(bn_batch_var)))
+        return tf.nn.batch_normalization(input, bn_mean, bn_variance, bn_offset, bn_scale, self.conv_bn_epsilon)
+
+    '''
     def batch_normalization(self, input):
         bn_input_shape = input.get_shape()
         scale = tf.Variable(tf.ones([bn_input_shape[-1]]))
