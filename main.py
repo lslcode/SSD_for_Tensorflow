@@ -26,14 +26,13 @@ def testing():
         if os.path.exists('./session_params/session.ckpt.index') :
             saver.restore(sess, './session_params/session.ckpt')
             image, actual,file_list = get_traindata_voc2012(1)
-            pred_class,pred_location,pred_default_box = ssd_model.run(image,None)
+            pred_class,pred_location,_ = ssd_model.run(image,None)
             print('file_list:' + str(file_list))
             for index, act in zip(range(len(image)), actual):
                 for a in act :
                     print('【img-'+str(index)+' actual】:' + str(a))
                 print('pred_class:' + str(pred_class[index]))
-                print('pred_location:' + str(pred_location[index]))
-                print('pred_default_box:' + str(pred_default_box[index]))                             
+                print('pred_location:' + str(pred_location[index]))                     
         else:
             print('No Data Exists!')
         sess.close()
