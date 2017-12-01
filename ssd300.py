@@ -315,7 +315,7 @@ class SSD300:
         self.loss = [self.loss_all,self.loss_location,self.loss_class]
 
         # loss优化函数
-        self.optimizer = tf.train.AdamOptimizer(0.0001)
+        self.optimizer = tf.train.AdamOptimizer(0.001)
         #self.optimizer = tf.train.GradientDescentOptimizer(0.001)
         self.train = self.optimizer.minimize(self.loss_all)
 
@@ -333,7 +333,7 @@ class SSD300:
             f_class, f_location = self.sess.run(self.pred_set, feed_dict={self.input : input_images})
             with tf.control_dependencies(self.pred_set):
                 self.input_actual_data = actual_data
-                gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(f_class)
+                gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data()
                 self.sess.run(self.train, feed_dict={
                     self.input : input_images,
                     self.groundtruth_class : gt_class,
@@ -348,21 +348,12 @@ class SSD300:
                     self.groundtruth_positives : gt_positives,
                     self.groundtruth_negatives : gt_negatives
                 })
-                # 释放资源
-                self.feature_class = None
-                self.feature_location = None
-                self.feature_maps = None
-                self.tmp_all_feature = None
-
+    
                 return loss_all, loss_class, loss_location, f_class, f_location
 
         # 检测部分
         else :
-            '''
-            pred_class , pred_location = self.sess.run([self.feature_class, self.feature_location], feed_dict={self.input : input_images})
-            return pred_class , pred_location
-            '''
-            # 预测结果
+            # softmax归一化预测结果
             self.feature_class = tf.exp(self.feature_class)
             input_softmax_result =tf.div(tf.reduce_max(self.feature_class,2),tf.reduce_sum(self.feature_class,2))
             # 过滤冗余的预测结果
@@ -387,7 +378,7 @@ class SSD300:
                         is_filter = True
                     else:
                         for p_c,p_l in zip(item_img_class, item_img_location):
-                            if(self.jaccard(p_location,p_location)>0.3 and p_class == p_c):
+                            if(self.jaccard(p_location,p_l)>0.3 and p_class == p_c):
                                 is_filter = True
                                 break
                     if(is_filter==False):
@@ -399,7 +390,6 @@ class SSD300:
                 pred_default_box.append(item_img_box)
             return pred_class, pred_location, pred_default_box
             
-
     # Batch Normalization算法
     #批量归一标准化操作，预防梯度弥散、消失与爆炸，同时替换dropout预防过拟合的操作
     def batch_normalization(self, input):
@@ -436,34 +426,22 @@ class SSD300:
                     for i,ratio in zip(range(len(ratios)), ratios):
                         top_x = x / float(width)
                         top_y = y / float(height)
-						# 原论文的width、height计算公式错误，应为以下公式
+        				# 原论文的width、height计算公式错误，应为以下公式
                         box_width = np.sqrt(scale * ratio)
                         box_height = np.sqrt(scale / ratio)
                         all_default_boxes.append([top_x, top_y, box_width, box_height])
-        
         return all_default_boxes
 
     # 整理生成groundtruth数据
-    def generate_groundtruth_data(self,f_class):
-        input_actual_data_len = len(self.input_actual_data)
-        
+    def generate_groundtruth_data(self):
         # 生成空数组，用于保存groundtruth
+        input_actual_data_len = len(self.input_actual_data)
         gt_class = np.ones((input_actual_data_len, self.all_default_boxs_len)) * self.background_classes_val
         gt_location = np.zeros((input_actual_data_len, self.all_default_boxs_len, 4))
         gt_positives = np.zeros((input_actual_data_len, self.all_default_boxs_len))
         gt_negatives = np.zeros((input_actual_data_len, self.all_default_boxs_len))
-
-        def extract_highest_indicies(pre_class, max_length):
-            loss_confs = []
-            for c in pre_class:
-                # softmax归一化，减去max预防溢出
-                e_x = np.exp(c - np.max(c))
-                loss_confs.append(np.amax(e_x / (np.sum(e_x)+self.extra_decimal)))
-            max_length = min(len(loss_confs),max_length)
-            return np.argpartition(loss_confs, -max_length)[-max_length:] 
-        
+        # 初始化正例训练数据
         for img_index in range(input_actual_data_len):
-            # 初始化正例训练数据
             for pre_actual in self.input_actual_data[img_index]:
                 gt_class_val = pre_actual[-1:][0]
                 gt_box_val = pre_actual[:-1]
@@ -474,25 +452,22 @@ class SSD300:
                         gt_location[img_index][boxe_index] = gt_box_val
                         gt_positives[img_index][boxe_index] = 1
                         gt_negatives[img_index][boxe_index] = 0
-
-            # 从分类预测的所有boxs中，获取分类置信度最高的前 (符合匹配的3倍数量) 位的int位置索引数组
-            # positives_count+1 预防positives_count=0，jaccard有可能没有匹配任何defualt box
-            indicies = extract_highest_indicies(f_class[img_index], ((int(np.sum(gt_positives[img_index])) + 1) * 3))
-            # 初始化负例训练数据
-            for max_box_index in indicies:
-                if np.sum(gt_location[img_index][max_box_index]) == 0 and np.argmax(f_class[img_index][max_box_index]) != self.background_classes_val : 
-                    gt_class[img_index][max_box_index] = self.background_classes_val
-                    gt_location[img_index][max_box_index] = [0, 0, 0, 0]
-                    gt_positives[img_index][max_box_index] = 0
-                    gt_negatives[img_index][max_box_index] = 1
-
+            gt_neg_count = 0
+            gt_neg_end_count = np.sum(gt_positives[img_index]) * 3
+            while(gt_neg_count < gt_neg_end_count):
+                r_index = np.random.randint(low=0, high=self.all_default_boxs_len, size=1)[0]
+                if gt_positives[img_index][r_index]==0: 
+                    gt_class[img_index][r_index] = self.background_classes_val
+                    gt_location[img_index][r_index] = [0, 0, 0, 0]
+                    gt_positives[img_index][r_index] = 0
+                    gt_negatives[img_index][r_index] = 1
+                    gt_neg_count+=1
         return gt_class, gt_location, gt_positives, gt_negatives
                      
     def jaccard(self, rect1, rect2):
         rect1_ = [x if x >= 0 else 0 for x in rect1]
         rect2_ = [x if x >= 0 else 0 for x in rect2]
         s = rect1_[2] * rect1_[3] + rect2_[2] * rect2_[3]
-        # rect1 and rect2 => A∧B
         intersect = 0
         top_x = max(rect1_[0], rect2_[0])
         top_y = max(rect1_[1], rect2_[1])
@@ -500,8 +475,6 @@ class SSD300:
         bottom_y = min(rect1_[1] + rect1_[3], rect2_[1] + rect2_[3])
         if bottom_y > top_y and bottom_x > top_x:
             intersect = (bottom_y - top_y) * (bottom_x - top_x)
-        # rect1 or rect2 => A∨B
         union = s - intersect
-        # A∧B / A∨B
         return intersect / union
     
