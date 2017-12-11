@@ -26,15 +26,15 @@ def testing():
         if os.path.exists('./session_params/session.ckpt.index') :
             saver.restore(sess, './session_params/session.ckpt')
             image, actual,file_list = get_traindata_voc2012(3)
-            pred_class,pred_location,pred_default_box = ssd_model.run(image,None)
+            pred_class, pred_class_val, pred_location = ssd_model.run(image,None)
             print('file_list:' + str(file_list))
             
             for index, act in zip(range(len(image)), actual):
                 for a in act :
                     print('【img-'+str(index)+' actual】:' + str(a))
                 print('pred_class:' + str(pred_class[index]))
-                print('pred_location:' + str(pred_location[index]))
-                print('pred_default_box:' + str(pred_default_box[index]))   
+                print('pred_class_val:' + str(pred_class_val[index]))
+                print('pred_location:' + str(pred_location[index]))   
                                    
         else:
             print('No Data Exists!')
@@ -76,7 +76,7 @@ def training():
                 print('Running:【' + str(running_count) + '】|Loss All:【'+str(min_loss_location + min_loss_class)+'|'+ str(loss_all) + '】|Location:【'+ str(np.sum(loss_location)) + '】|Class:【'+ str(np.sum(loss_class)) + '】|pred_class:【'+ str(np.sum(pred_class))+'|'+str(np.amax(pred_class))+'|'+ str(np.min(pred_class)) + '】|pred_location:【'+ str(np.sum(pred_location))+'|'+str(np.amax(pred_location))+'|'+ str(np.min(pred_location)) + '】')
                 
                 # 定期保存ckpt
-                if running_count % 50 == 0:
+                if running_count % 100 == 0:
                     saver.save(sess, './session_params/session.ckpt')
                     print('session.ckpt has been saved.')
                     gc.collect()
@@ -96,9 +96,11 @@ train_data：训练批次图像，格式[None,width,height,3]
 actual_data：图像标注数据，格式[None,[None,top_x,top_y,width,height,lable]]
 '''
 file_name_list = os.listdir('./train_datasets/voc2012/JPEGImages/')
+lable_arr = ['background','aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
+# 图像白化，格式:[R,G,B]
+whitened_RGB_mean = [123.68, 116.78, 103.94]
 def get_traindata_voc2012(batch_size):
     def get_actual_data_from_xml(xml_path):
-        lable_arr = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
         actual_item = []
         try:
             annotation_node = etxml.parse(xml_path).getroot()
@@ -135,10 +137,8 @@ def get_traindata_voc2012(batch_size):
                 continue
             img = skimage.io.imread(img_path)
             img = skimage.transform.resize(img, (300, 300))
-	         # 由于检测出来的结果loc与class的值范围[0,1]，为了预防梯度弥散，输入数值需要转换为范围一致的数值，包括后续初始化的卷积核
-            img = img / 255
-            img = np.array(img, dtype=np.float32)
-            img = img.reshape((300, 300, 3))
+            # 图像白化预处理
+            img = img - whitened_RGB_mean
             train_data.append(img)
             
     return train_data, actual_data,file_list
