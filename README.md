@@ -15,7 +15,7 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 <br/>
 <br/>
 与原论文不一致的地方：<br/>
-<span style='text-decoration:line-through'><b>1</b>，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]</span>
+<span style='text-decoration:line-through'><b>1</b>，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]</span><br/>
 【经实验top_x,top_y并不适合卷积，会降低精度，应改为center_x,center_y】
 <br/><br/>
 <b>2</b>，论文中default box的width=scale*sqrt(aspect_ratio)、height=scale/sqrt(aspect_ratio) 是错误的，<br/>改为width=sqrt(scale * aspect_ratio)、height=sqrt(scale/aspect_ratio)，有兴趣的朋友可以反推一下。<br/><br/>
