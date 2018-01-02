@@ -16,7 +16,6 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 <br/>
 与原论文不一致的地方：<br/>
 <span style='text-decoration:line-through'><b>1</b>，box的位置信息论文描述为 [center_X, center_Y, width, height], 为了更好兼容和理解，这套源码统一改为[top_X, top_Y, width, height]</span><br/>
-【经实验top_x,top_y并不适合卷积，会降低精度，应改为center_x,center_y】
 <br/><br/>
 <b>2</b>，论文中default box的width=scale*sqrt(aspect_ratio)、height=scale/sqrt(aspect_ratio) 是错误的，<br/>改为width=sqrt(scale * aspect_ratio)、height=sqrt(scale/aspect_ratio)，有兴趣的朋友可以反推一下。<br/><br/>
 <b>3</b>，按照论文中描述长宽比ratio = 1时，scale=sqrt(scale0 * scale1)，即值为sqrt(1.0 * 2.0)=1.414，与scale4=1.5接近，不利于区分default box，因此直接修改为(scale0+scale4)/2=(1.0+1.5)/2=1.25，即取scale0和scale4中间值。<br/><br/>
@@ -34,4 +33,9 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;loss_all,loss_location,loss_class = ssd_model.run(train_data, actual_data)<br/>
 <br/>
 【整体框架源码已完成，可以参考学习。还没完成训练,可能还存在一些问题,如果发现有问题,请告诉我 : jasonli8848@qq.com】<br/>
+<br/>
+【注】<br/>
+1，【经实验top_x,top_y并不适合卷积，会降低精度，应改为center_x,center_y】；<br/><br/>
+2，【源码中vgg基础网络并不完善，最好改为ResNet + Inception2】；<br/><br/>
+3，【default box 应根据具体业务设置，以免造成资源浪费以及影响精度】；<br/><br/>
 
