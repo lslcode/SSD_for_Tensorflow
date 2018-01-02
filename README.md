@@ -35,7 +35,7 @@ Single Shot MultiBox Detector目标检测算法基于tensorflow的实现<br/>
 【整体框架源码已完成，可以参考学习。还没完成训练,可能还存在一些问题,如果发现有问题,请告诉我 : jasonli8848@qq.com】<br/>
 <br/>
 【注】<br/>
-1，【经实验top_x,top_y并不适合卷积，会降低精度，应改为center_x,center_y】；<br/><br/>
-2，【源码中vgg基础网络并不完善，最好改为ResNet + Inception2】；<br/><br/>
-3，【default box 应根据具体业务设置，以免造成资源浪费以及影响精度】；<br/><br/>
+1，【经实验top_x,top_y并不适合卷积，会降低精度，应改为center_x,center_y】；<br/>
+2，【源码中vgg基础网络并不完善，最好改为ResNet + Inception2】；<br/>
+3，【default box 应根据具体业务设置，以免造成资源浪费以及影响精度】；<br/>
 
