@@ -87,11 +87,9 @@ class SSD300:
         print('##   conv_5_2 shape: ' + str(self.conv_5_2.get_shape().as_list()))
         # ssd卷积层 6
         self.conv_6_1 = self.convolution(self.conv_5_2, [3, 3, 512, 1024], self.conv_strides_1,'conv_6_1')
-        #self.conv_6_1 = tf.nn.dropout(self.conv_6_1, self.dropout_keep_prob) 
         print('##   conv_6_1 shape: ' + str(self.conv_6_1.get_shape().as_list()))
         # ssd卷积层 7 
         self.conv_7_1 = self.convolution(self.conv_6_1, [1, 1, 1024, 1024], self.conv_strides_1,'conv_7_1')
-        #self.conv_7_1 = tf.nn.dropout(self.conv_7_1, self.dropout_keep_prob) 
         print('##   conv_7_1 shape: ' + str(self.conv_7_1.get_shape().as_list()))
         # ssd卷积层 8     
         self.conv_8_1 = self.convolution(self.conv_7_1, [1, 1, 1024, 256], self.conv_strides_1,'conv_8_1')
@@ -262,14 +260,27 @@ class SSD300:
             return pred_class, pred_class_val, pred_location
 
     # 卷积操作
-    def convolution(self, input, kernel, strides, name):
+    def convolution(self, input, shape, strides, name):
         with tf.variable_scope(name):
-            weight = tf.get_variable(initializer=tf.random_normal(kernel, 0, 1), dtype=tf.float32, name=name+'_weight')
-            bias = tf.get_variable(initializer=tf.random_normal(kernel[-1:], 0, 1), dtype=tf.float32, name=name+'_bias')
+            weight = tf.get_variable(initializer=tf.random_normal(shape, 0, 1), dtype=tf.float32, name=name+'_weight')
+            bias = tf.get_variable(initializer=tf.random_normal(shape[-1:], 0, 1), dtype=tf.float32, name=name+'_bias')
             result = tf.nn.conv2d(input, weight, strides, padding='SAME', name=name+'_conv')
+            result = tf.nn.bias_add(result, bias)
             result = self.batch_normalization(result, name=name+'_batch_normal')
-            result = tf.nn.relu(tf.add(result, bias), name=name+'_relu')
-            return result     
+            result = tf.nn.relu(result, name=name+'_relu')
+            return result
+
+    # fully connect操作
+    def fc(self, input, out_shape, name):
+        with tf.variable_scope(name+'_fc'):
+            in_shape = 1
+            for d in input.get_shape().as_list()[1:]:
+                in_shape *= d
+            weight = tf.get_variable(initializer=tf.random_normal([in_shape, out_shape], 0, 1), dtype=tf.float32, name=name+'_fc_weight')
+            bias = tf.get_variable(initializer=tf.random_normal([out_shape], 0, 1), dtype=tf.float32, name=name+'_fc_bias')
+            result = tf.reshape(input, [-1, in_shape])
+            result = tf.nn.xw_plus_b(result, weight, bias, name=name+'_fc_do')
+            return result
 
     # Batch Normalization算法
     def batch_normalization(self, input, name):
