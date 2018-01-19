@@ -93,7 +93,7 @@ def training():
 '''
 获取voc2007训练图片数据
 train_data：训练批次图像，格式[None,width,height,3]
-actual_data：图像标注数据，格式[None,[None,top_x,top_y,width,height,lable]]
+actual_data：图像标注数据，格式[None,[None,center_x,center_y,width,height,lable]]
 '''
 file_name_list = os.listdir('./train_datasets/voc2007/JPEGImages/')
 lable_arr = ['background','aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor']
@@ -114,8 +114,8 @@ def get_traindata_voc2007(batch_size):
                 y_min = float(bndbox.find('ymin').text.strip())
                 x_max = float(bndbox.find('xmax').text.strip())
                 y_max = float(bndbox.find('ymax').text.strip())
-                # 位置数据用比例来表示，格式[top_x,top_y,width,height,lable]
-                actual_item.append([(x_min / img_width), (y_min / img_height), ((x_max - x_min) / img_width), ((y_max - y_min) / img_height), lable])
+                # 位置数据用比例来表示，格式[center_x,center_y,width,height,lable]
+                actual_item.append([((x_min + x_max)/2/img_width), ((y_min + y_max)/2/img_height), ((x_max - x_min) / img_width), ((y_max - y_min) / img_height), lable])
             return actual_item  
         except:
             return None
@@ -138,7 +138,7 @@ def get_traindata_voc2007(batch_size):
             img = skimage.io.imread(img_path)
             img = skimage.transform.resize(img, (300, 300))
             # 图像白化预处理
-            #img = img - whitened_RGB_mean
+            img = img - whitened_RGB_mean
             train_data.append(img)
             
     return train_data, actual_data,file_list
