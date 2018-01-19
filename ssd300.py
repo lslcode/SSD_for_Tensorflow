@@ -51,7 +51,7 @@ class SSD300:
         # Batch Normalization 算法的 variance_epsilon 参数
         self.conv_bn_epsilon = 0.00001
         # Jaccard相似度判断阀值
-        self.jaccard_value = 0.5
+        self.jaccard_value = 0.6
 
         # 初始化Tensorflow Graph
         self.generate_graph()
@@ -61,63 +61,63 @@ class SSD300:
         self.input = tf.placeholder(shape=[None, self.img_size[0], self.img_size[1], 3], dtype=tf.float32, name='input_image')
         
         # vvg16卷积层 1
-        self.conv_1_1 = self.convolution(self.input, [3, 3,  3, 16], self.conv_strides_1,'conv_1_1')
-        self.conv_1_2 = self.convolution(self.conv_1_1, [3, 3, 16, 32], self.conv_strides_1,'conv_1_2')
-        self.conv_1_2 = tf.nn.max_pool(self.conv_1_2, self.pool_size, self.pool_strides, padding='SAME', name='pool_1_2')
+        self.conv_1_1 = self.convolution(self.input, [3, 3,  3, 32], self.conv_strides_1,'conv_1_1')
+        self.conv_1_2 = self.convolution(self.conv_1_1, [3, 3, 32, 32], self.conv_strides_1,'conv_1_2')
+        self.conv_1_2 = tf.nn.avg_pool(self.conv_1_2, self.pool_size, self.pool_strides, padding='SAME', name='pool_1_2')
         print('##   conv_1_2 shape: ' + str(self.conv_1_2.get_shape().as_list()))
         # vvg16卷积层 2
         self.conv_2_1 = self.convolution(self.conv_1_2, [3, 3,  32, 64], self.conv_strides_1,'conv_2_1')
-        self.conv_2_2 = self.convolution(self.conv_2_1, [3, 3, 64, 128], self.conv_strides_1,'conv_2_2')
-        #self.conv_2_2 = tf.nn.max_pool(self.conv_2_2, self.pool_size, self.pool_strides, padding='SAME',   name='pool_2_2')
+        self.conv_2_2 = self.convolution(self.conv_2_1, [3, 3, 64, 64], self.conv_strides_1,'conv_2_2')
+        #self.conv_2_2 = tf.nn.avg_pool(self.conv_2_2, self.pool_size, self.pool_strides, padding='SAME',   name='pool_2_2')
         print('##   conv_2_2 shape: ' + str(self.conv_2_2.get_shape().as_list()))
         # vvg16卷积层 3
-        self.conv_3_1 = self.convolution(self.conv_2_2, [3, 3, 128, 1], self.conv_strides_1,'conv_3_1')
-        self.conv_3_2 = self.convolution(self.conv_3_1, [1, 1, 1, 1], self.conv_strides_1,'conv_3_2')
-        self.conv_3_3 = self.convolution(self.conv_3_2, [3, 3, 1, 128], self.conv_strides_1,'conv_3_3')
-        self.conv_3_3 = tf.nn.max_pool(self.conv_3_3, self.pool_size, self.pool_strides, padding='SAME', name='pool_3_3')
+        self.conv_3_1 = self.convolution(self.conv_2_2, [3, 3, 64, 128], self.conv_strides_1,'conv_3_1')
+        self.conv_3_2 = self.convolution(self.conv_3_1, [3, 3, 128, 128], self.conv_strides_1,'conv_3_2')
+        self.conv_3_3 = self.convolution(self.conv_3_2, [3, 3, 128, 128], self.conv_strides_1,'conv_3_3')
+        self.conv_3_3 = tf.nn.avg_pool(self.conv_3_3, self.pool_size, self.pool_strides, padding='SAME', name='pool_3_3')
         print('##   conv_3_3 shape: ' + str(self.conv_3_3.get_shape().as_list()))
         # vvg16卷积层 4
-        self.conv_4_1 = self.convolution(self.conv_3_3, [3, 3, 128, 1], self.conv_strides_1,'conv_4_1')
-        self.conv_4_2 = self.convolution(self.conv_4_1, [1, 1, 1, 1], self.conv_strides_1,'conv_4_2')
-        self.conv_4_3 = self.convolution(self.conv_4_2, [3, 3, 1, 128], self.conv_strides_1,'conv_4_3')
-        self.conv_4_3 = tf.nn.max_pool(self.conv_4_3, self.pool_size, self.pool_strides, padding='SAME', name='pool_4_3')
+        self.conv_4_1 = self.convolution(self.conv_3_3, [3, 3, 128, 256], self.conv_strides_1,'conv_4_1')
+        self.conv_4_2 = self.convolution(self.conv_4_1, [3, 3, 256, 256], self.conv_strides_1,'conv_4_2')
+        self.conv_4_3 = self.convolution(self.conv_4_2, [3, 3, 256, 256], self.conv_strides_1,'conv_4_3')
+        self.conv_4_3 = tf.nn.avg_pool(self.conv_4_3, self.pool_size, self.pool_strides, padding='SAME', name='pool_4_3')
         print('##   conv_4_3 shape: ' + str(self.conv_4_3.get_shape().as_list()))
         # vvg16卷积层 5
-        self.conv_5_1 = self.convolution(self.conv_4_3, [3, 3, 128, 1], self.conv_strides_1,'conv_5_1')
-        self.conv_5_2 = self.convolution(self.conv_5_1, [1, 1, 1, 1], self.conv_strides_1,'conv_5_2')
-        self.conv_5_3 = self.convolution(self.conv_5_2, [3, 3, 1, 128], self.conv_strides_1,'conv_5_3')
-        self.conv_5_3 = tf.nn.max_pool(self.conv_5_3, self.pool_size, self.pool_strides, padding='SAME', name='pool_5_3')
+        self.conv_5_1 = self.convolution(self.conv_4_3, [3, 3, 256, 256], self.conv_strides_1,'conv_5_1')
+        self.conv_5_2 = self.convolution(self.conv_5_1, [3, 3, 256, 256], self.conv_strides_1,'conv_5_2')
+        self.conv_5_3 = self.convolution(self.conv_5_2, [3, 3, 256, 256], self.conv_strides_1,'conv_5_3')
+        self.conv_5_3 = tf.nn.avg_pool(self.conv_5_3, self.pool_size, self.pool_strides, padding='SAME', name='pool_5_3')
         print('##   conv_5_3 shape: ' + str(self.conv_5_3.get_shape().as_list()))
         # ssd卷积层 6
-        self.conv_6_1 = self.convolution(self.conv_5_3, [3, 3, 128, 128], self.conv_strides_1,'conv_6_1')
+        self.conv_6_1 = self.convolution(self.conv_5_3, [3, 3, 256, 512], self.conv_strides_1,'conv_6_1')
         print('##   conv_6_1 shape: ' + str(self.conv_6_1.get_shape().as_list()))
         # ssd卷积层 7 
-        self.conv_7_1 = self.convolution(self.conv_6_1, [1, 1, 128, 128], self.conv_strides_1,'conv_7_1')
+        self.conv_7_1 = self.convolution(self.conv_6_1, [1, 1, 512, 512], self.conv_strides_1,'conv_7_1')
         print('##   conv_7_1 shape: ' + str(self.conv_7_1.get_shape().as_list()))
         # ssd卷积层 8     
-        self.conv_8_1 = self.convolution(self.conv_7_1, [1, 1, 128, 128], self.conv_strides_1,'conv_8_1')
-        self.conv_8_2 = self.convolution(self.conv_8_1, [3, 3, 128, 128], self.conv_strides_2,'conv_8_2')
+        self.conv_8_1 = self.convolution(self.conv_7_1, [1, 1, 512, 128], self.conv_strides_1,'conv_8_1')
+        self.conv_8_2 = self.convolution(self.conv_8_1, [3, 3, 128, 256], self.conv_strides_2,'conv_8_2')
         print('##   conv_8_2 shape: ' + str(self.conv_8_2.get_shape().as_list()))
         # ssd卷积层 9   
-        self.conv_9_1 = self.convolution(self.conv_8_2, [1, 1, 128, 128], self.conv_strides_1,'conv_9_1')
-        self.conv_9_2 = self.convolution(self.conv_9_1, [3, 3, 128, 128], self.conv_strides_2,'conv_9_2')
+        self.conv_9_1 = self.convolution(self.conv_8_2, [1, 1, 256, 64], self.conv_strides_1,'conv_9_1')
+        self.conv_9_2 = self.convolution(self.conv_9_1, [3, 3, 64, 128], self.conv_strides_2,'conv_9_2')
         print('##   conv_9_2 shape: ' + str(self.conv_9_2.get_shape().as_list()))
         # ssd卷积层 10    
-        self.conv_10_1 = self.convolution(self.conv_9_2, [1, 1, 128, 128], self.conv_strides_1,'conv_10_1')
-        self.conv_10_2 = self.convolution(self.conv_10_1, [3, 3, 128, 128], self.conv_strides_2,'conv_10_2')
+        self.conv_10_1 = self.convolution(self.conv_9_2, [1, 1, 128, 64], self.conv_strides_1,'conv_10_1')
+        self.conv_10_2 = self.convolution(self.conv_10_1, [3, 3, 64, 128], self.conv_strides_2,'conv_10_2')
         print('##   conv_10_2 shape: ' + str(self.conv_10_2.get_shape().as_list()))
         # ssd卷积层 11
         self.conv_11 = tf.nn.avg_pool(self.conv_10_2, self.pool_size, self.pool_strides, "VALID")
         print('##   conv_11 shape: ' + str(self.conv_11.get_shape().as_list()))
 
         # 第 1 层 特征层，来源于conv_4_3  
-        self.features_1 = self.convolution(self.conv_4_3, [3, 3, 128, self.default_box_size[0] * (self.classes_size + 4)], self.conv_strides_1,'features_1')
+        self.features_1 = self.convolution(self.conv_4_3, [3, 3, 256, self.default_box_size[0] * (self.classes_size + 4)], self.conv_strides_1,'features_1')
         print('##   features_1 shape: ' + str(self.features_1.get_shape().as_list()))
         # 第 2 层 特征层，来源于conv_7_1
-        self.features_2 = self.convolution(self.conv_7_1, [3, 3, 128, self.default_box_size[1] * (self.classes_size + 4)], self.conv_strides_1,'features_2')
+        self.features_2 = self.convolution(self.conv_7_1, [3, 3, 512, self.default_box_size[1] * (self.classes_size + 4)], self.conv_strides_1,'features_2')
         print('##   features_2 shape: ' + str(self.features_2.get_shape().as_list()))
         # 第 3 层 特征层，来源于conv_8_2
-        self.features_3 = self.convolution(self.conv_8_2, [3, 3, 128,  self.default_box_size[2] * (self.classes_size + 4)], self.conv_strides_1,'features_3')
+        self.features_3 = self.convolution(self.conv_8_2, [3, 3, 256,  self.default_box_size[2] * (self.classes_size + 4)], self.conv_strides_1,'features_3')
         print('##   features_3 shape: ' + str(self.features_3.get_shape().as_list()))
         # 第 4 层 特征层，来源于conv_9_2
         self.features_4 = self.convolution(self.conv_9_2, [3, 3, 128,  self.default_box_size[3] * (self.classes_size + 4)], self.conv_strides_1,'features_4')
