@@ -186,11 +186,12 @@ class SSD300:
                 raise Exception('input_images 与 actual_data参数长度不对应!')
 
             f_class, f_location = self.sess.run([self.feature_class, self.feature_location], feed_dict={self.input : input_images })
-            #检查数据是否正确
-            f_class = self.check_numerics(f_class,'预测集f_class')
-            f_location = self.check_numerics(f_location,'预测集f_location')
 
             with tf.control_dependencies([self.feature_class, self.feature_location]):
+                #检查数据是否正确
+                f_class = self.check_numerics(f_class,'预测集f_class')
+                f_location = self.check_numerics(f_location,'预测集f_location')
+                
                 gt_class,gt_location,gt_positives,gt_negatives = self.generate_groundtruth_data(actual_data, f_class) 
                 #print('gt_positives :【'+str(np.sum(gt_positives))+'|'+str(np.amax(gt_positives))+'|'+str(np.amin(gt_positives))+'】|gt_negatives : 【'+str(np.sum(gt_negatives))+'|'+str(np.amax(gt_negatives))+'|'+str(np.amin(gt_negatives))+'】')
                 self.sess.run(self.train, feed_dict={
@@ -200,16 +201,17 @@ class SSD300:
                     self.groundtruth_positives : gt_positives,
                     self.groundtruth_negatives : gt_negatives
                 })
-                loss_all,loss_location,loss_class = self.sess.run([self.loss_all,self.loss_location,self.loss_class], feed_dict={
-                    self.input : input_images,
-                    self.groundtruth_class : gt_class,
-                    self.groundtruth_location : gt_location,
-                    self.groundtruth_positives : gt_positives,
-                    self.groundtruth_negatives : gt_negatives
-                })
-                #检查数据是否正确
-                loss_all = self.check_numerics(loss_all,'损失值loss_all') 
-                return loss_all, loss_class, loss_location, f_class, f_location
+                with tf.control_dependencies([self.train]):
+                    loss_all,loss_location,loss_class = self.sess.run([self.loss_all,self.loss_location,self.loss_class], feed_dict={
+                        self.input : input_images,
+                        self.groundtruth_class : gt_class,
+                        self.groundtruth_location : gt_location,
+                        self.groundtruth_positives : gt_positives,
+                        self.groundtruth_negatives : gt_negatives
+                    })
+                    #检查数据是否正确
+                    loss_all = self.check_numerics(loss_all,'损失值loss_all') 
+                    return loss_all, loss_class, loss_location, f_class, f_location
 
         # 检测部分
         else :
@@ -240,7 +242,7 @@ class SSD300:
                 item_img_location = []
                 for j in range(top_shape[1]) : 
                     p_class_val = f_class_softmax[i][box_top_index[i][j]]
-                    if p_class_val < 0.3:
+                    if p_class_val < 0.5:
                         continue
                     p_class = np.argmax(f_class[i][box_top_index[i][j]])
                     if p_class==self.background_classes_val:
@@ -265,8 +267,8 @@ class SSD300:
     # 卷积操作
     def convolution(self, input, shape, strides, name):
         with tf.variable_scope(name):
-            weight = tf.get_variable(initializer=tf.random_normal(shape, 0, 1), dtype=tf.float32, name=name+'_weight')
-            bias = tf.get_variable(initializer=tf.random_normal(shape[-1:], 0, 1), dtype=tf.float32, name=name+'_bias')
+            weight = tf.get_variable(initializer=tf.truncated_normal(shape, 0, 1), dtype=tf.float32, name=name+'_weight')
+            bias = tf.get_variable(initializer=tf.truncated_normal(shape[-1:], 0, 1), dtype=tf.float32, name=name+'_bias')
             result = tf.nn.conv2d(input, weight, strides, padding='SAME', name=name+'_conv')
             result = tf.nn.bias_add(result, bias)
             result = self.batch_normalization(result, name=name+'_bn')
@@ -279,8 +281,8 @@ class SSD300:
             in_shape = 1
             for d in input.get_shape().as_list()[1:]:
                 in_shape *= d
-            weight = tf.get_variable(initializer=tf.random_normal([in_shape, out_shape], 0, 1), dtype=tf.float32, name=name+'_fc_weight')
-            bias = tf.get_variable(initializer=tf.random_normal([out_shape], 0, 1), dtype=tf.float32, name=name+'_fc_bias')
+            weight = tf.get_variable(initializer=tf.truncated_normal([in_shape, out_shape], 0, 1), dtype=tf.float32, name=name+'_fc_weight')
+            bias = tf.get_variable(initializer=tf.truncated_normal([out_shape], 0, 1), dtype=tf.float32, name=name+'_fc_bias')
             result = tf.reshape(input, [-1, in_shape])
             result = tf.nn.xw_plus_b(result, weight, bias, name=name+'_fc_do')
             return result
@@ -299,7 +301,7 @@ class SSD300:
             mean, variance = tf.cond(tf.cast(True, tf.bool), mean_var_with_update, lambda: (moving_mean, moving_variance))
             beta = tf.get_variable(name+'_beta', bn_input_shape[-1:] , initializer=tf.zeros_initializer)
             gamma = tf.get_variable(name+'_gamma', bn_input_shape[-1:] , initializer=tf.ones_initializer)
-            return tf.nn.batch_normalization(input, mean, variance, beta, gamma, self.conv_bn_epsilon)
+            return tf.nn.batch_normalization(input, mean, variance, beta, gamma, self.conv_bn_epsilon, name+'_bn_opt')
     
     # smooth_L1 算法
     def smooth_L1(self, x):
